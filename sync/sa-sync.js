@@ -63,14 +63,14 @@ function parseArgs() {
 // ── SA API call ───────────────────────────────────────────────────
 async function fetchSAJobs(start, end) {
   const payload = {
-    QueryData: JSON.stringify({
+    QueryData: {
       ResourceID: 1,
       StartDate: start,
       EndDate:   end,
       IncludeCompleted: true,
       IncludeSkipped:   true,
       IncludeOpen:      true,
-    })
+    }
   };
 
   console.log(`Calling SA API for ${start.Month}/${start.Day}/${start.Year} → ${end.Month}/${end.Day}/${end.Year}...`);
