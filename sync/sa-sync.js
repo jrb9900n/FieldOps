@@ -63,12 +63,14 @@ function parseArgs() {
 // ── SA API call ───────────────────────────────────────────────────
 async function fetchSAJobs(start, end) {
   const payload = {
-    ResourceID: 1,
-    StartDate: start,
-    EndDate:   end,
-    IncludeCompleted: true,
-    IncludeSkipped:   true,
-    IncludeOpen:      true,
+    QueryData: JSON.stringify({
+      ResourceID: 1,
+      StartDate: start,
+      EndDate:   end,
+      IncludeCompleted: true,
+      IncludeSkipped:   true,
+      IncludeOpen:      true,
+    })
   };
 
   console.log(`Calling SA API for ${start.Month}/${start.Day}/${start.Year} → ${end.Month}/${end.Day}/${end.Year}...`);
@@ -89,6 +91,9 @@ async function fetchSAJobs(start, end) {
   });
 
   if (!res.ok) {
+    const errBody = await res.text();
+    console.error('SA response headers:', Object.fromEntries(res.headers.entries()));
+    console.error('SA error body (first 1000):', errBody.substring(0, 1000));
     throw new Error(`SA API returned ${res.status} ${res.statusText}`);
   }
 
