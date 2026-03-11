@@ -62,6 +62,13 @@ function parseArgs() {
 
 // ── SA API call ───────────────────────────────────────────────────
 async function fetchSAJobs(start, end) {
+  // Compute day of week for start date (1=Sun, 2=Mon ... 7=Sat)
+  const startJs = new Date(start.Year, start.Month - 1, start.Day);
+  const endJs   = new Date(end.Year,   end.Month   - 1, end.Day);
+  const dow = startJs.getDay() + 1; // JS getDay() is 0=Sun, SA wants 1=Sun
+  const isMultiDay = startJs.toDateString() !== endJs.toDateString();
+  const isPast = startJs < new Date();
+
   const payload = {
     OnNewDispatchBoard: true,
     QueryData: {
@@ -73,19 +80,19 @@ async function fetchSAJobs(start, end) {
       Client: "",
       CrewIDs: [],
       CustomFields: [],
-      DOW: 1,
+      DOW: dow,
       DispatchID: "00000000-0000-0000-0000-000000000000",
       DispatchedOnly: false,
       Divisions: [],
       FilterProximity: false,
-      IncludeUnassignedWork: false,
-      IsCloseOutDay: false,
+      IncludeUnassignedWork: true,
+      IsCloseOutDay: isPast,
       IsSnow: false,
       IsWaitingList: false,
       LoadAppointmentTimes: false,
       MapCode: "",
       MapCodeOperator: "0",
-      MultiDay: false,
+      MultiDay: isMultiDay,
       Priority: "0",
       ProximityAddress: "",
       ProximityMiles: "5.00",
