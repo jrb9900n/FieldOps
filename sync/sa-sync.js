@@ -125,30 +125,53 @@ async function fetchSAJobs(start, end) {
     throw new Error(`SA API returned ${res.status} ${res.statusText}`);
   }
 
-  const json = await res.json();
+  const rawText = await res.text();
+  console.log('SA raw response (first 300):', rawText.substring(0, 300));
+  
+  let json;
+  try {
+    json = JSON.parse(rawText);
+  } catch(e) {
+    throw new Error(`Failed to parse SA response: ${e.message}. Raw: ${rawText.substring(0, 200)}`);
+  }
 
-  // SA wraps response in { d: [...] }
-  if (!json.d) throw new Error('Unexpected SA response shape — missing .d');
-  const jobs = Array.isArray(json.d) ? json.d : JSON.parse(json.d);
-  console.log(`  ✓ SA returned ${jobs.length} jobs`);
+  // SA returns { d: { ScheduledItems: [...], Crews: [...], ... } }
+  if (!json.d) throw new Error('Unexpected SA response shape — missing .d. Keys: ' + Object.keys(json).join(', '));
+  const result = json.d;
+  if (!result.ScheduledItems) throw new Error('Missing ScheduledItems. Keys: ' + Object.keys(result).join(', '));
+  const jobs = result.ScheduledItems;
+  console.log(`  ✓ SA returned ${jobs.length} jobs, ${result.Crews?.length || 0} crews`);
+
   return jobs;
 }
 
 // ── Map SA fields → Supabase columns ─────────────────────────────
 function saJobToRow(j, syncLogId) {
   const saDateToISO = (d) => {
-    if (!d || typeof d !== 'object') return null;
-    try { return new Date(d.Year, d.Month - 1, d.Day).toISOString().split('T')[0]; }
-    catch { return null; }
+    if (!d) return null;
+    // Handle object format {Month, Day, Year} or string
+    if (typeof d === 'string') return d.includes('-') ? d : null;
+    if (typeof d === 'object') {
+      try { 
+        if (!d.Year || !d.Month || !d.Day) return null;
+        return `${d.Year}-${String(d.Month).padStart(2,'0')}-${String(d.Day).padStart(2,'0')}`;
+      } catch { return null; }
+    }
+    return null;
   };
 
   const saTimeToStr = (t) => {
-    if (!t || typeof t !== 'object') return null;
-    try {
-      const h = String(t.Hour ?? 0).padStart(2,'0');
-      const m = String(t.Minute ?? 0).padStart(2,'0');
-      return `${h}:${m}`;
-    } catch { return null; }
+    if (!t) return null;
+    if (typeof t === 'string') return t;
+    if (typeof t === 'object') {
+      try {
+        if (t.Hour == null) return null;
+        const h = String(t.Hour).padStart(2,'0');
+        const m = String(t.Minute ?? 0).padStart(2,'0');
+        return `${h}:${m}`;
+      } catch { return null; }
+    }
+    return null;
   };
 
   const comments = (j.JobComments || []).map(c => ({
@@ -172,7 +195,7 @@ function saJobToRow(j, syncLogId) {
     end_date:                  saDateToISO(j.EndDate),
     start_time:                saTimeToStr(j.StartTime),
     end_time:                  saTimeToStr(j.EndTime),
-    assigned:                  j.ResourceName || j.Assigned || null,
+    assigned:                  j.ResourceName || j.Assigned || j.AssignedResourceName || null,
     assigned_resource_ids:     (j.AssignedResourceIDs || []).join(';'),
     status:                    j.Status,
     amount:                    j.Amount || 0,
