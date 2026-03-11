@@ -6,11 +6,6 @@ const supabase = createClient(
   import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
-
 // ─────────────────────────────────────────────────────────────────
 // Fallback sample data — used when Supabase has no rows yet
 // ─────────────────────────────────────────────────────────────────
