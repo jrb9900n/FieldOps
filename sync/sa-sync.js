@@ -176,7 +176,7 @@ async function main() {
   // 1. Create sync log entry
   const { data: logEntry, error: logErr } = await supabase
     .from('sa_sync_log')
-    .insert({ trigger: 'manual', date_range_start: `${start.Year}-${String(start.Month).padStart(2,'0')}-${String(start.Day).padStart(2,'0')}`, date_range_end: `${end.Year}-${String(end.Month).padStart(2,'0')}-${String(end.Day).padStart(2,'0')}`, status: 'running' })
+    .insert({ triggered_by: 'manual', range_start: `${start.Year}-${String(start.Month).padStart(2,'0')}-${String(start.Day).padStart(2,'0')}`, range_end: `${end.Year}-${String(end.Month).padStart(2,'0')}-${String(end.Day).padStart(2,'0')}`, status: 'success' })
     .select()
     .single();
 
@@ -206,12 +206,12 @@ async function main() {
     else console.log(`  ✓ Appended ${snapshots.length} snapshots`);
 
     // 5. Update sync log — success
-    await supabase.from('sa_sync_log').update({ status: 'success', job_count: rows.length, completed_at: new Date().toISOString() }).eq('id', syncLogId);
+    await supabase.from('sa_sync_log').update({ status: 'success', jobs_upserted: rows.length, jobs_returned: rows.length }).eq('id', syncLogId);
     console.log(`\n✅ Sync complete — ${label} — ${rows.length} jobs`);
 
   } catch (err) {
     console.error('Sync failed:', err.message);
-    await supabase.from('sa_sync_log').update({ status: 'error', error_message: err.message, completed_at: new Date().toISOString() }).eq('id', syncLogId);
+    await supabase.from('sa_sync_log').update({ status: 'error', error_message: err.message }).eq('id', syncLogId);
     process.exit(1);
   }
 }
