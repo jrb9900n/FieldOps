@@ -1,8 +1,18 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 // ─────────────────────────────────────────────────────────────────
-// Sample data — exact shape of SA ScheduledWorkWs.asmx/Query response
-// Replace SAMPLE_JOBS with a Supabase fetch in production
+// Fallback sample data — used when Supabase has no rows yet
 // ─────────────────────────────────────────────────────────────────
 const SAMPLE_JOBS = [
   { ID:"c24b29a9-1", CustomerID:"f956f86d-1", Client:"Chia Xiong", Address:"N111W12508 Strawgrass Ln", City:"Germantown", State:"WI", Zip:"53022", Service:"App3", StartDate:"7/1/2025", EndDate:"7/1/2025", StartTime:"3:43 PM", EndTime:"4:06 PM", Assigned:"Dave", Status:3, Amount:92, Rate:92, Hours:0.38, BudgetedHours:0, TotalManHours:0.38, NumberOfMen:1, IsRescheduled:false, InvoiceID:"ae3e3926-1", IsInvoiceLocked:true, DateCompleted:"7/1/2025", CompletedUsername:"Dave", JobComments:[], InternalSchedulingNotes:"", ClientNotes:"", ActualMileage:2.1, SalesRep:"Alyssa Endlich", AccountBalance:0 },
@@ -29,9 +39,7 @@ const STATUS = {
   3: { label:"Complete", dot:"#10b981", bg:"rgba(16,185,129,0.1)",  border:"rgba(16,185,129,0.25)" },
   5: { label:"Skipped",  dot:"#ef4444", bg:"rgba(239,68,68,0.1)",   border:"rgba(239,68,68,0.25)"  },
 };
-const CREWS    = [...new Set(SAMPLE_JOBS.map(j=>j.Assigned))].sort();
-const DATES    = [...new Set(SAMPLE_JOBS.map(j=>j.StartDate))].sort();
-const SERVICES = [...new Set(SAMPLE_JOBS.map(j=>j.Service))].sort();
+// CREWS/DATES/SERVICES derived dynamically inside App from ALL_JOBS
 
 // ─── Helpers ──────────────────────────────────────────────────
 const f$ = n => n==null?"—":"$"+Number(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -172,16 +180,60 @@ function CrewCard({crew,jobs}) {
 
 // ─── Main App ─────────────────────────────────────────────────
 export default function App() {
-  const [view,    setView]    = useState("kpi");
-  const [crew,    setCrew]    = useState("All");
-  const [date,    setDate]    = useState("All");
-  const [status,  setStatus]  = useState("All");
-  const [search,  setSearch]  = useState("");
-  const [expID,   setExpID]   = useState(null);
-  const [syncing, setSyncing] = useState(false);
+  const [view,     setView]     = useState("kpi");
+  const [crew,     setCrew]     = useState("All");
+  const [date,     setDate]     = useState("All");
+  const [status,   setStatus]   = useState("All");
+  const [search,   setSearch]   = useState("");
+  const [expID,    setExpID]    = useState(null);
+  const [syncing,  setSyncing]  = useState(false);
+  const [dbJobs,   setDbJobs]   = useState(null);
+  const [loading,  setLoading]  = useState(true);
+  const [lastSync, setLastSync] = useState(null);
+
+  useEffect(() => {
+    async function fetchJobs() {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("sa_jobs")
+        .select("*")
+        .order("start_date", { ascending: false })
+        .limit(2000);
+      if (!error && data && data.length > 0) {
+        const mapped = data.map(r => ({
+          ID: r.id, CustomerID: r.customer_id,
+          Client: r.client, Address: r.address, City: r.city,
+          State: r.state, Zip: r.zip, Service: r.service,
+          StartDate: r.start_date, EndDate: r.end_date,
+          StartTime: r.start_time||"", EndTime: r.end_time||"",
+          Assigned: r.assigned, Status: r.status,
+          Amount: r.amount, Rate: r.rate, Hours: r.hours,
+          BudgetedHours: r.budgeted_hours, TotalManHours: r.total_man_hours,
+          NumberOfMen: r.number_of_men, IsRescheduled: r.is_rescheduled,
+          InvoiceID: r.invoice_id, IsInvoiceLocked: r.is_invoice_locked,
+          DateCompleted: r.date_completed, CompletedUsername: r.completed_username,
+          JobComments: r.job_comments||[], InternalSchedulingNotes: r.internal_scheduling_notes||"",
+          ClientNotes: r.client_notes||"", ActualMileage: r.actual_mileage,
+          SalesRep: r.sales_rep, AccountBalance: r.account_balance,
+        }));
+        setDbJobs(mapped);
+        setLastSync(data[0]?.last_synced_at);
+      } else {
+        setDbJobs([]);
+      }
+      setLoading(false);
+    }
+    fetchJobs();
+  }, []);
+
+  const ALL_JOBS = (dbJobs && dbJobs.length > 0) ? dbJobs : SAMPLE_JOBS;
+  const isLiveData = dbJobs && dbJobs.length > 0;
+
+  const CREWS    = [...new Set(ALL_JOBS.map(j=>j.Assigned).filter(Boolean))].sort();
+  const DATES    = [...new Set(ALL_JOBS.map(j=>j.StartDate).filter(Boolean))].sort();
 
   const jobs = useMemo(()=>{
-    let j=SAMPLE_JOBS;
+    let j=ALL_JOBS;
     if(crew  !=="All") j=j.filter(x=>x.Assigned===crew);
     if(date  !=="All") j=j.filter(x=>x.StartDate===date);
     if(status!=="All") j=j.filter(x=>String(x.Status)===status);
@@ -190,7 +242,7 @@ export default function App() {
       j=j.filter(x=>[x.Client,x.Address,x.Service,x.City].some(f=>(f||"").toLowerCase().includes(q)));
     }
     return j;
-  },[crew,date,status,search]);
+  },[crew,date,status,search,ALL_JOBS]);
 
   const totalRev  = jobs.reduce((s,j)=>s+(j.Amount||0),0);
   const totalHrs  = jobs.reduce((s,j)=>s+(j.TotalManHours||0),0);
@@ -204,7 +256,26 @@ export default function App() {
     return Object.entries(m).sort((a,b)=>b[1].reduce((s,j)=>s+(j.Amount||0),0)-a[1].reduce((s,j)=>s+(j.Amount||0),0));
   },[jobs]);
 
-  const fakeSync = () => { setSyncing(true); setTimeout(()=>setSyncing(false),2200); };
+  const handleRefresh = async () => {
+    setSyncing(true);
+    const { data, error } = await supabase.from("sa_jobs").select("*").order("start_date",{ascending:false}).limit(2000);
+    if (!error && data && data.length > 0) {
+      const mapped = data.map(r => ({
+        ID:r.id,CustomerID:r.customer_id,Client:r.client,Address:r.address,City:r.city,
+        State:r.state,Zip:r.zip,Service:r.service,StartDate:r.start_date,EndDate:r.end_date,
+        StartTime:r.start_time||"",EndTime:r.end_time||"",Assigned:r.assigned,Status:r.status,
+        Amount:r.amount,Rate:r.rate,Hours:r.hours,BudgetedHours:r.budgeted_hours,
+        TotalManHours:r.total_man_hours,NumberOfMen:r.number_of_men,IsRescheduled:r.is_rescheduled,
+        InvoiceID:r.invoice_id,IsInvoiceLocked:r.is_invoice_locked,DateCompleted:r.date_completed,
+        CompletedUsername:r.completed_username,JobComments:r.job_comments||[],
+        InternalSchedulingNotes:r.internal_scheduling_notes||"",ClientNotes:r.client_notes||"",
+        ActualMileage:r.actual_mileage,SalesRep:r.sales_rep,AccountBalance:r.account_balance,
+      }));
+      setDbJobs(mapped);
+      setLastSync(data[0]?.last_synced_at);
+    }
+    setSyncing(false);
+  };
 
   const sel = {background:"#0f172a",color:"#94a3b8",border:"1px solid #1e293b",borderRadius:6,padding:"6px 10px",fontSize:12,outline:"none",cursor:"pointer"};
   const navBtn = (id,label) => (
@@ -231,9 +302,9 @@ export default function App() {
         </div>
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:8}}>
           <div style={{fontSize:10.5,color:"#334155",background:"#0a1628",border:"1px solid #0f2040",borderRadius:5,padding:"3px 9px"}}>
-            📅 Jul 1–3, 2025 · {SAMPLE_JOBS.length} jobs
+            {loading ? "Loading…" : isLiveData ? `📅 Live · ${ALL_JOBS.length} jobs` : `📅 Sample · ${ALL_JOBS.length} jobs`}
           </div>
-          <button onClick={fakeSync} disabled={syncing} style={{background:syncing?"#0f2040":"#0f2d5c",color:syncing?"#334155":"#60a5fa",border:"1px solid #1d4ed830",borderRadius:6,padding:"5px 12px",fontSize:11,fontWeight:700,cursor:syncing?"not-allowed":"pointer",letterSpacing:"0.04em",display:"flex",alignItems:"center",gap:5}}>
+          <button onClick={handleRefresh} disabled={syncing} style={{background:syncing?"#0f2040":"#0f2d5c",color:syncing?"#334155":"#60a5fa",border:"1px solid #1d4ed830",borderRadius:6,padding:"5px 12px",fontSize:11,fontWeight:700,cursor:syncing?"not-allowed":"pointer",letterSpacing:"0.04em",display:"flex",alignItems:"center",gap:5}}>
             <span style={{display:"inline-block",animation:syncing?"spin 1s linear infinite":"none"}}>↻</span>
             {syncing?"Syncing…":"SYNC SA"}
           </button>
@@ -256,7 +327,7 @@ export default function App() {
           <option value="3">Complete</option>
           <option value="5">Skipped</option>
         </select>
-        <span style={{fontSize:11,color:"#1e3a5f",marginLeft:"auto"}}>{jobs.length} of {SAMPLE_JOBS.length} jobs</span>
+        <span style={{fontSize:11,color:"#1e3a5f",marginLeft:"auto"}}>{jobs.length} of {ALL_JOBS.length} jobs</span>
       </div>
 
       <div style={{padding:"18px 20px"}}>
