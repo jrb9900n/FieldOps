@@ -52,11 +52,11 @@ const Badge = ({status}) => {
   return <span style={{display:"inline-flex",alignItems:"center",gap:5,padding:"2px 9px",borderRadius:99,fontSize:10.5,fontWeight:700,letterSpacing:"0.05em",color:s.dot,background:s.bg,border:`1px solid ${s.border}`}}><span style={{width:5,height:5,borderRadius:"50%",background:s.dot,flexShrink:0}}/>{s.label}</span>;
 };
 
-const Pill = ({children, color="#3b82f6"}) => (
+const Pill = ({children, color="#6366f1"}) => (
   <span style={{background:`${color}18`,color,border:`1px solid ${color}30`,padding:"2px 8px",borderRadius:4,fontSize:11,fontWeight:600,letterSpacing:"0.03em"}}>{children}</span>
 );
 
-function KPITile({label, value, sub, accent="#3b82f6", warn=false}) {
+function KPITile({label, value, sub, accent="#2563eb", warn=false}) {
   return (
     <div style={{background:"#f1f5f9",border:`1px solid ${warn?"rgba(239,68,68,0.3)":"#1e293b"}`,borderRadius:10,padding:"18px 20px",borderTop:`3px solid ${warn?"#ef4444":accent}`,display:"flex",flexDirection:"column",gap:3}}>
       <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.1em",color:"#475569",textTransform:"uppercase"}}>{label}</div>
@@ -90,14 +90,14 @@ function JobRow({job,expanded,onToggle}) {
   const hasDetail = job.InternalSchedulingNotes||(job.JobComments||[]).length>0;
   const overBudget = job.BudgetedHours>0 && job.TotalManHours>job.BudgetedHours;
   return <>
-    <tr onClick={hasDetail?onToggle:undefined} style={{borderBottom:"1px solid #0f172a",background:expanded?"#0d1f3c":"transparent",cursor:hasDetail?"pointer":"default",transition:"background 0.12s"}}>
+    <tr onClick={hasDetail?onToggle:undefined} style={{borderBottom:"1px solid #e2e8f0",background:expanded?"#eff6ff":"transparent",cursor:hasDetail?"pointer":"default",transition:"background 0.12s"}}>
       <TD><span style={{fontSize:11,color:"#475569"}}>{job.StartDate}</span></TD>
       <TD>
-        <div style={{fontWeight:600,color:"#64748b",fontSize:12.5}}>{job.Client}</div>
+        <div style={{fontWeight:600,color:"#0f172a",fontSize:12.5}}>{job.Client}</div>
         <div style={{fontSize:10.5,color:"#475569",marginTop:1}}>{job.Address}, {job.City}</div>
       </TD>
       <TD><Pill>{job.Service}</Pill></TD>
-      <TD><Pill color="#8b5cf6">{job.Assigned}</Pill></TD>
+      <TD><Pill color="#6366f1">{job.Assigned}</Pill></TD>
       <TD mono>{job.StartTime||"—"}</TD>
       <TD mono>{job.EndTime||"—"}</TD>
       <TD><Badge status={job.Status}/></TD>
@@ -105,7 +105,7 @@ function JobRow({job,expanded,onToggle}) {
       <TD right color={overBudget?"#f87171":"#94a3b8"}>{fH(job.TotalManHours)}</TD>
       <TD right color="#334155">{job.BudgetedHours>0?fH(job.BudgetedHours):"—"}</TD>
       <TD right>
-        {hasDetail&&<span style={{fontSize:12,color:expanded?"#60a5fa":"#1e3a5f"}}>{expanded?"▲":"▼"}</span>}
+        {hasDetail&&<span style={{fontSize:12,color:expanded?"#2563eb":"#94a3b8"}}>{expanded?"▲":"▼"}</span>}
       </TD>
     </tr>
     {expanded&&hasDetail&&(
@@ -137,7 +137,7 @@ function CrewCard({crew,jobs}) {
       {/* header */}
       <div style={{padding:"14px 16px",borderBottom:"1px solid #1e293b",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
         <div>
-          <div style={{fontWeight:800,fontSize:14,color:"#0f172a"}}>{crew}</div>
+          <div style={{fontWeight:800,fontSize:14,color:"#0f172a",fontWeight:700}}>{crew}</div>
           <div style={{fontSize:11,color:"#475569",marginTop:2}}>{jobs.length} jobs · {fH(hrs)}</div>
         </div>
         <div style={{textAlign:"right"}}>
