@@ -101,7 +101,7 @@ function JobRow({job,expanded,onToggle}) {
       <TD mono>{job.StartTime||"—"}</TD>
       <TD mono>{job.EndTime||"—"}</TD>
       <TD><Badge status={job.Status}/></TD>
-      <TD right bold color="#34d399">{f$(job.Amount)}</TD>
+      <TD right bold color="#059669">{f$(job.Amount)}</TD>
       <TD right color={overBudget?"#f87171":"#94a3b8"}>{fH(job.TotalManHours)}</TD>
       <TD right color="#334155">{job.BudgetedHours>0?fH(job.BudgetedHours):"—"}</TD>
       <TD right>
@@ -161,7 +161,7 @@ function CrewCard({crew,jobs}) {
       {/* job list */}
       <div style={{overflowY:"auto",maxHeight:240,flex:1}}>
         {jobs.map(j=>(
-          <div key={j.ID} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 14px",borderBottom:"1px solid #0a1628",fontSize:11.5}}>
+          <div key={j.ID} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 14px",borderBottom:"1px solid #e2e8f0",fontSize:11.5}}>
             <span style={{width:6,height:6,borderRadius:"50%",background:STATUS[j.Status]?.dot||"#6b7280",flexShrink:0}}/>
             <span style={{flex:1,color:"#475569",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{j.Client}</span>
             <span style={{color:"#475569",flexShrink:0,marginRight:4}}>{j.Service}</span>
@@ -307,7 +307,7 @@ export default function App() {
       </div>
 
       {/* ── Filter bar ── */}
-      <div style={{background:"#f8fafc",borderBottom:"1px solid #0a1628",padding:"8px 20px",display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+      <div style={{background:"#f8fafc",borderBottom:"1px solid #e2e8f0",padding:"8px 20px",display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
         <input placeholder="Search client, address, service…" value={search} onChange={e=>setSearch(e.target.value)}
           style={{...sel,width:210,padding:"6px 12px",color:"#475569"}}/>
         <select value={crew}   onChange={e=>setCrew(e.target.value)}   style={sel}>
@@ -361,18 +361,18 @@ export default function App() {
                   const open2=cjobs.filter(j=>j.Status===1).length;
                   const comp2=pct(done2,cjobs.length);
                   return (
-                    <tr key={cr} style={{borderBottom:"1px solid #0a1628"}}>
-                      <TD bold color="#e2e8f0">{cr}</TD>
-                      <TD right color="#475569">{cjobs.length}</TD>
+                    <tr key={cr} style={{borderBottom:"1px solid #e2e8f0"}}>
+                      <TD bold color="#0f172a">{cr}</TD>
+                      <TD right color="#334155">{cjobs.length}</TD>
                       <TD right bold color="#10b981">{done2}</TD>
-                      <TD right bold color={skip2>0?"#ef4444":"#1e3a5f"}>{skip2}</TD>
-                      <TD right bold color={open2>0?"#f59e0b":"#1e3a5f"}>{open2}</TD>
-                      <TD right bold color="#34d399">{f$(rev2)}</TD>
-                      <TD right color="#64748b">{fH(hrs2)}</TD>
-                      <TD right bold color="#60a5fa">{f$(hrs2>0?rev2/hrs2:0)}</TD>
+                      <TD right bold color={skip2>0?"#ef4444":"#94a3b8"}>{skip2}</TD>
+                      <TD right bold color={open2>0?"#f59e0b":"#94a3b8"}>{open2}</TD>
+                      <TD right bold color="#059669">{f$(rev2)}</TD>
+                      <TD right color="#475569">{fH(hrs2)}</TD>
+                      <TD right bold color="#2563eb">{f$(hrs2>0?rev2/hrs2:0)}</TD>
                       <TD right>
                         <div style={{display:"flex",alignItems:"center",gap:6,justifyContent:"flex-end"}}>
-                          <div style={{width:48,height:4,background:"#e2e8f0",borderRadius:2,overflow:"hidden"}}>
+                          <div style={{width:48,height:4,background:"#f1f5f9",borderRadius:2,overflow:"hidden"}}>
                             <div style={{width:`${comp2}%`,height:"100%",background:comp2===100?"#10b981":comp2>70?"#3b82f6":"#f59e0b"}}/>
                           </div>
                           <span style={{fontSize:11,color:"#475569",minWidth:28,textAlign:"right"}}>{comp2}%</span>
