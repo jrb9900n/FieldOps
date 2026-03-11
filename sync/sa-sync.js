@@ -108,6 +108,42 @@ async function fetchSAJobs(start, end) {
     }
   };
 
+  // SA is stateful — prime the session with the target date first
+  console.log(`Priming SA session for ${start.Month}/${start.Day}/${start.Year}...`);
+  await fetch(SA_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Cookie': process.env.SA_COOKIE,
+      'Referer': `${SA_BASE}/DispatchBoard.aspx?type=db`,
+      'Origin': SA_BASE,
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+      'X-Requested-With': 'XMLHttpRequest',
+      'Accept': 'application/json, text/javascript, */*; q=0.01',
+      'Accept-Language': 'en-US,en;q=0.9',
+    },
+    body: JSON.stringify({
+      OnNewDispatchBoard: true,
+      QueryData: {
+        ResourceID: 1,
+        StartDate: start,
+        EndDate: start, // single day prime
+        Address: "", City: "", Client: "", CrewIDs: [], CustomFields: [],
+        DOW: dow, DispatchID: "00000000-0000-0000-0000-000000000000",
+        DispatchedOnly: false, Divisions: [], FilterProximity: false,
+        IncludeUnassignedWork: true, IsCloseOutDay: isPast, IsSnow: false,
+        IsWaitingList: false, LoadAppointmentTimes: false, MapCode: "",
+        MapCodeOperator: "0", MultiDay: false, Priority: "0",
+        ProximityAddress: "", ProximityMiles: "5.00", ResourceTags: "",
+        ScheduleStatus: "0", ScreenViewID: "00000000-0000-0000-0000-000000000000",
+        ServiceIDs: [], ShowProductTotals: true, Tags: [], TicketTypes: [],
+        UseMinDays: true, Zip: "",
+      }
+    }),
+  });
+  console.log(`  Primed. Now fetching full range...`);
+  await new Promise(r => setTimeout(r, 500)); // small delay
+
   console.log(`Calling SA API for ${start.Month}/${start.Day}/${start.Year} → ${end.Month}/${end.Day}/${end.Year}...`);
 
   const res = await fetch(SA_ENDPOINT, {
