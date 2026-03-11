@@ -21,9 +21,9 @@ const SA_BASE    = 'https://my.serviceautopilot.com';
 const SA_ENDPOINT = `${SA_BASE}/WebServices/ScheduledWorkWs.asmx/Query`;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const AUTH_COOKIE  = process.env.SA_AUTH_COOKIE;
+const SA_COOKIE    = process.env.SA_COOKIE;
 
-if (!SUPABASE_URL || !SUPABASE_KEY || !AUTH_COOKIE) {
+if (!SUPABASE_URL || !SUPABASE_KEY || !SA_COOKIE) {
   console.error('Missing env vars. Check sync/.env');
   process.exit(1);
 }
@@ -73,14 +73,11 @@ async function fetchSAJobs(start, end) {
 
   console.log(`Calling SA API for ${start.Month}/${start.Day}/${start.Year} → ${end.Month}/${end.Day}/${end.Year}...`);
 
-  const incapCookies = process.env.SA_INCAP_COOKIES || '';
-  const cookieHeader = `.ASPXAUTH=${AUTH_COOKIE}; ${incapCookies}`.trim();
-
   const res = await fetch(SA_ENDPOINT, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Cookie': cookieHeader,
+      'Cookie': process.env.SA_COOKIE,
       'Referer': `${SA_BASE}/DispatchBoard.aspx?type=db`,
       'Origin': SA_BASE,
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
