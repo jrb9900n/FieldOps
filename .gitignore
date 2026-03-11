@@ -2,3 +2,7 @@ node_modules
 dist
 .env
 .env.local
+
+# Sync credentials — never commit
+sync/.env
+sync/node_modules
