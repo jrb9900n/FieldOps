@@ -73,14 +73,20 @@ async function fetchSAJobs(start, end) {
 
   console.log(`Calling SA API for ${start.Month}/${start.Day}/${start.Year} → ${end.Month}/${end.Day}/${end.Year}...`);
 
+  const incapCookies = process.env.SA_INCAP_COOKIES || '';
+  const cookieHeader = `.ASPXAUTH=${AUTH_COOKIE}; ${incapCookies}`.trim();
+
   const res = await fetch(SA_ENDPOINT, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Cookie': `.ASPXAUTH=${AUTH_COOKIE}`,
+      'Cookie': cookieHeader,
       'Referer': `${SA_BASE}/DispatchBoard.aspx?type=db`,
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      'Origin': SA_BASE,
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
       'X-Requested-With': 'XMLHttpRequest',
+      'Accept': 'application/json, text/javascript, */*; q=0.01',
+      'Accept-Language': 'en-US,en;q=0.9',
     },
     body: JSON.stringify(payload),
   });
