@@ -59,9 +59,9 @@ const Pill = ({children, color="#3b82f6"}) => (
 function KPITile({label, value, sub, accent="#3b82f6", warn=false}) {
   return (
     <div style={{background:"#f1f5f9",border:`1px solid ${warn?"rgba(239,68,68,0.3)":"#1e293b"}`,borderRadius:10,padding:"18px 20px",borderTop:`3px solid ${warn?"#ef4444":accent}`,display:"flex",flexDirection:"column",gap:3}}>
-      <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.1em",color:"#1e293b",textTransform:"uppercase"}}>{label}</div>
+      <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.1em",color:"#475569",textTransform:"uppercase"}}>{label}</div>
       <div style={{fontSize:26,fontWeight:800,color:warn?"#ef4444":"#f1f5f9",letterSpacing:"-0.02em",lineHeight:1.1}}>{value}</div>
-      {sub&&<div style={{fontSize:11,color:"#1e293b",marginTop:2}}>{sub}</div>}
+      {sub&&<div style={{fontSize:11,color:"#475569",marginTop:2}}>{sub}</div>}
     </div>
   );
 }
@@ -72,18 +72,18 @@ function CommentRow({c}) {
   const ts=dt?`${dt.Month}/${dt.Day}/${dt.Year} ${dt.Hour}:${String(dt.Minute).padStart(2,"0")}`:"";
   return (
     <div style={{display:"flex",gap:8,padding:"5px 0"}}>
-      <div style={{width:20,height:20,borderRadius:"50%",background:"#e2e8f0",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"#1e293b",fontWeight:700}}>{c.UserName?c.UserName[0]:""}</div>
+      <div style={{width:20,height:20,borderRadius:"50%",background:"#e2e8f0",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"#475569",fontWeight:700}}>{c.UserName?c.UserName[0]:""}</div>
       <div>
-        <span style={{fontSize:11,fontWeight:700,color:"#1e293b"}}>{c.UserName}</span>
-        {ts&&<span style={{fontSize:10,color:"#1e293b",marginLeft:6}}>{ts}</span>}
-        <div style={{fontSize:12,color:"#cbd5e1",marginTop:1}}>{c.Comment}</div>
+        <span style={{fontSize:11,fontWeight:700,color:"#475569"}}>{c.UserName}</span>
+        {ts&&<span style={{fontSize:10,color:"#475569",marginLeft:6}}>{ts}</span>}
+        <div style={{fontSize:12,color:"#94a3b8",marginTop:1}}>{c.Comment}</div>
       </div>
     </div>
   );
 }
 
 // ─── Job table row ────────────────────────────────────────────
-const TH = ({children,right}) => <th style={{padding:"8px 12px",fontSize:10,fontWeight:700,color:"#1e293b",letterSpacing:"0.08em",textTransform:"uppercase",borderBottom:"1px solid #1e293b",textAlign:right?"right":"left",whiteSpace:"nowrap"}}>{children}</th>;
+const TH = ({children,right}) => <th style={{padding:"8px 12px",fontSize:10,fontWeight:700,color:"#475569",letterSpacing:"0.08em",textTransform:"uppercase",borderBottom:"1px solid #1e293b",textAlign:right?"right":"left",whiteSpace:"nowrap"}}>{children}</th>;
 const TD = ({children,right,mono,bold,color}) => <td style={{padding:"9px 12px",fontSize:12,color:color||"#cbd5e1",verticalAlign:"middle",textAlign:right?"right":"left",fontFamily:mono?"'Roboto Mono',monospace":"inherit",fontWeight:bold?700:400}}>{children}</td>;
 
 function JobRow({job,expanded,onToggle}) {
@@ -91,10 +91,10 @@ function JobRow({job,expanded,onToggle}) {
   const overBudget = job.BudgetedHours>0 && job.TotalManHours>job.BudgetedHours;
   return <>
     <tr onClick={hasDetail?onToggle:undefined} style={{borderBottom:"1px solid #0f172a",background:expanded?"#0d1f3c":"transparent",cursor:hasDetail?"pointer":"default",transition:"background 0.12s"}}>
-      <TD><span style={{fontSize:11,color:"#1e293b"}}>{job.StartDate}</span></TD>
+      <TD><span style={{fontSize:11,color:"#475569"}}>{job.StartDate}</span></TD>
       <TD>
-        <div style={{fontWeight:600,color:"#e2e8f0",fontSize:12.5}}>{job.Client}</div>
-        <div style={{fontSize:10.5,color:"#1e293b",marginTop:1}}>{job.Address}, {job.City}</div>
+        <div style={{fontWeight:600,color:"#64748b",fontSize:12.5}}>{job.Client}</div>
+        <div style={{fontSize:10.5,color:"#475569",marginTop:1}}>{job.Address}, {job.City}</div>
       </TD>
       <TD><Pill>{job.Service}</Pill></TD>
       <TD><Pill color="#8b5cf6">{job.Assigned}</Pill></TD>
@@ -112,8 +112,8 @@ function JobRow({job,expanded,onToggle}) {
       <tr style={{background:"#f1f5f9",borderBottom:"1px solid #1e293b"}}>
         <td colSpan={11} style={{padding:"10px 16px 14px 60px"}}>
           {job.InternalSchedulingNotes&&(
-            <div style={{fontSize:11.5,color:"#1e293b",marginBottom:8,lineHeight:1.5}}>
-              <span style={{fontSize:10,fontWeight:700,letterSpacing:"0.08em",color:"#1e293b",textTransform:"uppercase"}}>Scheduling Notes · </span>
+            <div style={{fontSize:11.5,color:"#475569",marginBottom:8,lineHeight:1.5}}>
+              <span style={{fontSize:10,fontWeight:700,letterSpacing:"0.08em",color:"#475569",textTransform:"uppercase"}}>Scheduling Notes · </span>
               {job.InternalSchedulingNotes}
             </div>
           )}
@@ -138,11 +138,11 @@ function CrewCard({crew,jobs}) {
       <div style={{padding:"14px 16px",borderBottom:"1px solid #1e293b",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
         <div>
           <div style={{fontWeight:800,fontSize:14,color:"#0f172a"}}>{crew}</div>
-          <div style={{fontSize:11,color:"#1e293b",marginTop:2}}>{jobs.length} jobs · {fH(hrs)}</div>
+          <div style={{fontSize:11,color:"#475569",marginTop:2}}>{jobs.length} jobs · {fH(hrs)}</div>
         </div>
         <div style={{textAlign:"right"}}>
           <div style={{fontWeight:700,fontSize:15,color:"#34d399"}}>{f$(rev)}</div>
-          <div style={{fontSize:10.5,color:"#1e293b"}}>{f$(rph(jobs))}/hr</div>
+          <div style={{fontSize:10.5,color:"#475569"}}>{f$(rph(jobs))}/hr</div>
         </div>
       </div>
       {/* progress */}
@@ -154,7 +154,7 @@ function CrewCard({crew,jobs}) {
         {[{l:"Done",v:done,c:"#10b981"},{l:"Skipped",v:skip,c:"#ef4444"},{l:"Open",v:open,c:"#f59e0b"}].map((s,i)=>(
           <div key={i} style={{flex:1,padding:"8px 4px",textAlign:"center",borderRight:i<2?"1px solid #1e293b":"none"}}>
             <div style={{fontSize:20,fontWeight:800,color:s.v>0?s.c:"#1e293b"}}>{s.v}</div>
-            <div style={{fontSize:9.5,color:"#1e293b",textTransform:"uppercase",letterSpacing:"0.07em"}}>{s.l}</div>
+            <div style={{fontSize:9.5,color:"#475569",textTransform:"uppercase",letterSpacing:"0.07em"}}>{s.l}</div>
           </div>
         ))}
       </div>
@@ -163,8 +163,8 @@ function CrewCard({crew,jobs}) {
         {jobs.map(j=>(
           <div key={j.ID} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 14px",borderBottom:"1px solid #0a1628",fontSize:11.5}}>
             <span style={{width:6,height:6,borderRadius:"50%",background:STATUS[j.Status]?.dot||"#6b7280",flexShrink:0}}/>
-            <span style={{flex:1,color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{j.Client}</span>
-            <span style={{color:"#1e293b",flexShrink:0,marginRight:4}}>{j.Service}</span>
+            <span style={{flex:1,color:"#475569",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{j.Client}</span>
+            <span style={{color:"#475569",flexShrink:0,marginRight:4}}>{j.Service}</span>
             <span style={{color:"#34d399",fontWeight:700,flexShrink:0,minWidth:52,textAlign:"right"}}>{f$(j.Amount)}</span>
           </div>
         ))}
@@ -272,9 +272,9 @@ export default function App() {
     setSyncing(false);
   };
 
-  const sel = {background:"#f1f5f9",color:"#1e293b",border:"1px solid #e2e8f0",borderRadius:6,padding:"6px 10px",fontSize:12,outline:"none",cursor:"pointer"};
+  const sel = {background:"#f1f5f9",color:"#475569",border:"1px solid #e2e8f0",borderRadius:6,padding:"6px 10px",fontSize:12,outline:"none",cursor:"pointer"};
   const navBtn = (id,label) => (
-    <button onClick={()=>setView(id)} style={{padding:"6px 14px",borderRadius:6,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",letterSpacing:"0.02em",background:view===id?"#1d4ed8":"transparent",color:view===id?"#fff":"#475569",transition:"all 0.15s"}}>
+    <button onClick={()=>setView(id)} style={{padding:"6px 14px",borderRadius:6,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",letterSpacing:"0.02em",background:view===id?"#1d4ed8":"transparent",color:view===id?"#fff":"#0f172a",transition:"all 0.15s"}}>
       {label}
     </button>
   );
@@ -283,12 +283,12 @@ export default function App() {
     <div style={{background:"#ffffff",minHeight:"100vh",fontFamily:"'DM Sans','IBM Plex Sans',system-ui,sans-serif",color:"#0f172a"}}>
 
       {/* ── Top bar ── */}
-      <div style={{background:"#f8fafc",borderBottom:"1px solid #e2e8f0",padding:"0 20px",height:50,display:"flex",alignItems:"center",gap:0,position:"sticky",top:0,zIndex:100}}>
+      <div style={{background:"#ffffff",borderBottom:"1px solid #e2e8f0",padding:"0 20px",height:50,display:"flex",alignItems:"center",gap:0,position:"sticky",top:0,zIndex:100}}>
         <div style={{display:"flex",alignItems:"center",gap:8,marginRight:28}}>
           <div style={{width:26,height:26,borderRadius:6,background:"linear-gradient(135deg,#2563eb,#0891b2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:900,color:"#fff",letterSpacing:"-0.05em"}}>F</div>
           <span style={{fontWeight:800,fontSize:13.5,letterSpacing:"-0.03em",color:"#0f172a"}}>FieldOps</span>
-          <span style={{color:"#cbd5e1",fontSize:18,margin:"0 2px"}}>|</span>
-          <span style={{fontSize:12,color:"#1e293b"}}>Dispatch Dashboard</span>
+          <span style={{color:"#94a3b8",fontSize:18,margin:"0 2px"}}>|</span>
+          <span style={{fontSize:12,color:"#94a3b8"}}>Dispatch Dashboard</span>
         </div>
         <div style={{display:"flex",gap:2}}>
           {navBtn("kpi","KPI Overview")}
@@ -296,7 +296,7 @@ export default function App() {
           {navBtn("jobs","Job List")}
         </div>
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:8}}>
-          <div style={{fontSize:10.5,color:"#1e293b",background:"#f8fafc",border:"1px solid #0f2040",borderRadius:5,padding:"3px 9px"}}>
+          <div style={{fontSize:10.5,color:"#475569",background:"#f8fafc",border:"1px solid #0f2040",borderRadius:5,padding:"3px 9px"}}>
             {loading ? "Loading…" : isLiveData ? `📅 Live · ${ALL_JOBS.length} jobs` : `📅 Sample · ${ALL_JOBS.length} jobs`}
           </div>
           <button onClick={handleRefresh} disabled={syncing} style={{background:syncing?"#0f2040":"#0f2d5c",color:syncing?"#334155":"#60a5fa",border:"1px solid #bfdbfe",borderRadius:6,padding:"5px 12px",fontSize:11,fontWeight:700,cursor:syncing?"not-allowed":"pointer",letterSpacing:"0.04em",display:"flex",alignItems:"center",gap:5}}>
@@ -309,7 +309,7 @@ export default function App() {
       {/* ── Filter bar ── */}
       <div style={{background:"#f8fafc",borderBottom:"1px solid #0a1628",padding:"8px 20px",display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
         <input placeholder="Search client, address, service…" value={search} onChange={e=>setSearch(e.target.value)}
-          style={{...sel,width:210,padding:"6px 12px",color:"#1e293b"}}/>
+          style={{...sel,width:210,padding:"6px 12px",color:"#475569"}}/>
         <select value={crew}   onChange={e=>setCrew(e.target.value)}   style={sel}>
           <option value="All">All Crews</option>{CREWS.map(c=><option key={c}>{c}</option>)}
         </select>
@@ -341,7 +341,7 @@ export default function App() {
           {/* Crew breakdown */}
           <div style={{background:"#f8fafc",border:"1px solid #0f2040",borderRadius:10,overflow:"hidden"}}>
             <div style={{padding:"12px 16px",borderBottom:"1px solid #0f2040",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-              <span style={{fontWeight:700,fontSize:13,color:"#e2e8f0"}}>Crew Performance</span>
+              <span style={{fontWeight:700,fontSize:13,color:"#64748b"}}>Crew Performance</span>
               <span style={{fontSize:10.5,color:"#94a3b8"}}>{DATES[0]} – {DATES[DATES.length-1]}</span>
             </div>
             <table style={{width:"100%",borderCollapse:"collapse"}}>
@@ -375,7 +375,7 @@ export default function App() {
                           <div style={{width:48,height:4,background:"#e2e8f0",borderRadius:2,overflow:"hidden"}}>
                             <div style={{width:`${comp2}%`,height:"100%",background:comp2===100?"#10b981":comp2>70?"#3b82f6":"#f59e0b"}}/>
                           </div>
-                          <span style={{fontSize:11,color:"#1e293b",minWidth:28,textAlign:"right"}}>{comp2}%</span>
+                          <span style={{fontSize:11,color:"#475569",minWidth:28,textAlign:"right"}}>{comp2}%</span>
                         </div>
                       </TD>
                     </tr>
@@ -423,8 +423,8 @@ export default function App() {
       <div style={{margin:"0 20px 20px",background:"#f8fafc",border:"1px solid #0a1628",borderRadius:8,padding:"10px 14px",display:"flex",gap:10,alignItems:"center"}}>
         <span style={{fontSize:14}}>🗄️</span>
         <span style={{fontSize:11,color:"#94a3b8",lineHeight:1.5}}>
-          <span style={{color:"#1e293b",fontWeight:700}}>Supabase schema ready · </span>
-          Tables: <code style={{color:"#3b82f6",fontSize:10.5}}>sa_jobs</code> · <code style={{color:"#3b82f6",fontSize:10.5}}>sa_job_snapshots</code> · <code style={{color:"#3b82f6",fontSize:10.5}}>sa_sync_log</code> ·
+          <span style={{color:"#475569",fontWeight:700}}>Supabase schema ready · </span>
+          Tables: <code style={{color:"#0f172a",fontSize:10.5}}>sa_jobs</code> · <code style={{color:"#0f172a",fontSize:10.5}}>sa_job_snapshots</code> · <code style={{color:"#0f172a",fontSize:10.5}}>sa_sync_log</code> ·
           Views: <code style={{color:"#8b5cf6",fontSize:10.5}}>v_crew_daily_kpis</code> · <code style={{color:"#8b5cf6",fontSize:10.5}}>v_crew_weekly_kpis</code> · <code style={{color:"#8b5cf6",fontSize:10.5}}>v_skipped_jobs</code>
         </span>
       </div>
