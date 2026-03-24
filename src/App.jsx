@@ -52,16 +52,16 @@ const Badge = ({status}) => {
   return <span style={{display:"inline-flex",alignItems:"center",gap:5,padding:"2px 9px",borderRadius:99,fontSize:10.5,fontWeight:700,letterSpacing:"0.05em",color:s.dot,background:s.bg,border:`1px solid ${s.border}`}}><span style={{width:5,height:5,borderRadius:"50%",background:s.dot,flexShrink:0}}/>{s.label}</span>;
 };
 
-const Pill = ({children, color="#6366f1"}) => (
+const Pill = ({children, color="#3b82f6"}) => (
   <span style={{background:`${color}18`,color,border:`1px solid ${color}30`,padding:"2px 8px",borderRadius:4,fontSize:11,fontWeight:600,letterSpacing:"0.03em"}}>{children}</span>
 );
 
-function KPITile({label, value, sub, accent="#2563eb", warn=false}) {
+function KPITile({label, value, sub, accent="#3b82f6", warn=false}) {
   return (
     <div style={{background:"#f1f5f9",border:`1px solid ${warn?"rgba(239,68,68,0.3)":"#1e293b"}`,borderRadius:10,padding:"18px 20px",borderTop:`3px solid ${warn?"#ef4444":accent}`,display:"flex",flexDirection:"column",gap:3}}>
-      <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.1em",color:"#475569",textTransform:"uppercase"}}>{label}</div>
+      <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.1em",color:"#1e293b",textTransform:"uppercase"}}>{label}</div>
       <div style={{fontSize:26,fontWeight:800,color:warn?"#ef4444":"#f1f5f9",letterSpacing:"-0.02em",lineHeight:1.1}}>{value}</div>
-      {sub&&<div style={{fontSize:11,color:"#475569",marginTop:2}}>{sub}</div>}
+      {sub&&<div style={{fontSize:11,color:"#1e293b",marginTop:2}}>{sub}</div>}
     </div>
   );
 }
@@ -72,48 +72,48 @@ function CommentRow({c}) {
   const ts=dt?`${dt.Month}/${dt.Day}/${dt.Year} ${dt.Hour}:${String(dt.Minute).padStart(2,"0")}`:"";
   return (
     <div style={{display:"flex",gap:8,padding:"5px 0"}}>
-      <div style={{width:20,height:20,borderRadius:"50%",background:"#e2e8f0",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"#475569",fontWeight:700}}>{c.UserName?c.UserName[0]:""}</div>
+      <div style={{width:20,height:20,borderRadius:"50%",background:"#e2e8f0",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"#1e293b",fontWeight:700}}>{c.UserName?c.UserName[0]:""}</div>
       <div>
-        <span style={{fontSize:11,fontWeight:700,color:"#475569"}}>{c.UserName}</span>
-        {ts&&<span style={{fontSize:10,color:"#475569",marginLeft:6}}>{ts}</span>}
-        <div style={{fontSize:12,color:"#94a3b8",marginTop:1}}>{c.Comment}</div>
+        <span style={{fontSize:11,fontWeight:700,color:"#1e293b"}}>{c.UserName}</span>
+        {ts&&<span style={{fontSize:10,color:"#1e293b",marginLeft:6}}>{ts}</span>}
+        <div style={{fontSize:12,color:"#cbd5e1",marginTop:1}}>{c.Comment}</div>
       </div>
     </div>
   );
 }
 
 // ─── Job table row ────────────────────────────────────────────
-const TH = ({children,right}) => <th style={{padding:"8px 12px",fontSize:10,fontWeight:700,color:"#475569",letterSpacing:"0.08em",textTransform:"uppercase",borderBottom:"1px solid #1e293b",textAlign:right?"right":"left",whiteSpace:"nowrap"}}>{children}</th>;
+const TH = ({children,right}) => <th style={{padding:"8px 12px",fontSize:10,fontWeight:700,color:"#1e293b",letterSpacing:"0.08em",textTransform:"uppercase",borderBottom:"1px solid #1e293b",textAlign:right?"right":"left",whiteSpace:"nowrap"}}>{children}</th>;
 const TD = ({children,right,mono,bold,color}) => <td style={{padding:"9px 12px",fontSize:12,color:color||"#cbd5e1",verticalAlign:"middle",textAlign:right?"right":"left",fontFamily:mono?"'Roboto Mono',monospace":"inherit",fontWeight:bold?700:400}}>{children}</td>;
 
 function JobRow({job,expanded,onToggle}) {
   const hasDetail = job.InternalSchedulingNotes||(job.JobComments||[]).length>0;
   const overBudget = job.BudgetedHours>0 && job.TotalManHours>job.BudgetedHours;
   return <>
-    <tr onClick={hasDetail?onToggle:undefined} style={{borderBottom:"1px solid #e2e8f0",background:expanded?"#eff6ff":"transparent",cursor:hasDetail?"pointer":"default",transition:"background 0.12s"}}>
-      <TD><span style={{fontSize:11,color:"#475569"}}>{job.StartDate}</span></TD>
+    <tr onClick={hasDetail?onToggle:undefined} style={{borderBottom:"1px solid #0f172a",background:expanded?"#0d1f3c":"transparent",cursor:hasDetail?"pointer":"default",transition:"background 0.12s"}}>
+      <TD><span style={{fontSize:11,color:"#1e293b"}}>{job.StartDate}</span></TD>
       <TD>
-        <div style={{fontWeight:600,color:"#0f172a",fontSize:12.5}}>{job.Client}</div>
-        <div style={{fontSize:10.5,color:"#475569",marginTop:1}}>{job.Address}, {job.City}</div>
+        <div style={{fontWeight:600,color:"#e2e8f0",fontSize:12.5}}>{job.Client}</div>
+        <div style={{fontSize:10.5,color:"#1e293b",marginTop:1}}>{job.Address}, {job.City}</div>
       </TD>
       <TD><Pill>{job.Service}</Pill></TD>
-      <TD><Pill color="#6366f1">{job.Assigned}</Pill></TD>
+      <TD><Pill color="#8b5cf6">{job.Assigned}</Pill></TD>
       <TD mono>{job.StartTime||"—"}</TD>
       <TD mono>{job.EndTime||"—"}</TD>
       <TD><Badge status={job.Status}/></TD>
-      <TD right bold color="#059669">{f$(job.Amount)}</TD>
+      <TD right bold color="#34d399">{f$(job.Amount)}</TD>
       <TD right color={overBudget?"#f87171":"#94a3b8"}>{fH(job.TotalManHours)}</TD>
       <TD right color="#334155">{job.BudgetedHours>0?fH(job.BudgetedHours):"—"}</TD>
       <TD right>
-        {hasDetail&&<span style={{fontSize:12,color:expanded?"#2563eb":"#94a3b8"}}>{expanded?"▲":"▼"}</span>}
+        {hasDetail&&<span style={{fontSize:12,color:expanded?"#60a5fa":"#1e3a5f"}}>{expanded?"▲":"▼"}</span>}
       </TD>
     </tr>
     {expanded&&hasDetail&&(
       <tr style={{background:"#f1f5f9",borderBottom:"1px solid #1e293b"}}>
         <td colSpan={11} style={{padding:"10px 16px 14px 60px"}}>
           {job.InternalSchedulingNotes&&(
-            <div style={{fontSize:11.5,color:"#475569",marginBottom:8,lineHeight:1.5}}>
-              <span style={{fontSize:10,fontWeight:700,letterSpacing:"0.08em",color:"#475569",textTransform:"uppercase"}}>Scheduling Notes · </span>
+            <div style={{fontSize:11.5,color:"#1e293b",marginBottom:8,lineHeight:1.5}}>
+              <span style={{fontSize:10,fontWeight:700,letterSpacing:"0.08em",color:"#1e293b",textTransform:"uppercase"}}>Scheduling Notes · </span>
               {job.InternalSchedulingNotes}
             </div>
           )}
@@ -137,12 +137,12 @@ function CrewCard({crew,jobs}) {
       {/* header */}
       <div style={{padding:"14px 16px",borderBottom:"1px solid #1e293b",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
         <div>
-          <div style={{fontWeight:800,fontSize:14,color:"#0f172a",fontWeight:700}}>{crew}</div>
-          <div style={{fontSize:11,color:"#475569",marginTop:2}}>{jobs.length} jobs · {fH(hrs)}</div>
+          <div style={{fontWeight:800,fontSize:14,color:"#0f172a"}}>{crew}</div>
+          <div style={{fontSize:11,color:"#1e293b",marginTop:2}}>{jobs.length} jobs · {fH(hrs)}</div>
         </div>
         <div style={{textAlign:"right"}}>
           <div style={{fontWeight:700,fontSize:15,color:"#34d399"}}>{f$(rev)}</div>
-          <div style={{fontSize:10.5,color:"#475569"}}>{f$(rph(jobs))}/hr</div>
+          <div style={{fontSize:10.5,color:"#1e293b"}}>{f$(rph(jobs))}/hr</div>
         </div>
       </div>
       {/* progress */}
@@ -154,17 +154,17 @@ function CrewCard({crew,jobs}) {
         {[{l:"Done",v:done,c:"#10b981"},{l:"Skipped",v:skip,c:"#ef4444"},{l:"Open",v:open,c:"#f59e0b"}].map((s,i)=>(
           <div key={i} style={{flex:1,padding:"8px 4px",textAlign:"center",borderRight:i<2?"1px solid #1e293b":"none"}}>
             <div style={{fontSize:20,fontWeight:800,color:s.v>0?s.c:"#1e293b"}}>{s.v}</div>
-            <div style={{fontSize:9.5,color:"#475569",textTransform:"uppercase",letterSpacing:"0.07em"}}>{s.l}</div>
+            <div style={{fontSize:9.5,color:"#1e293b",textTransform:"uppercase",letterSpacing:"0.07em"}}>{s.l}</div>
           </div>
         ))}
       </div>
       {/* job list */}
       <div style={{overflowY:"auto",maxHeight:240,flex:1}}>
         {jobs.map(j=>(
-          <div key={j.ID} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 14px",borderBottom:"1px solid #e2e8f0",fontSize:11.5}}>
+          <div key={j.ID} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 14px",borderBottom:"1px solid #0a1628",fontSize:11.5}}>
             <span style={{width:6,height:6,borderRadius:"50%",background:STATUS[j.Status]?.dot||"#6b7280",flexShrink:0}}/>
-            <span style={{flex:1,color:"#475569",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{j.Client}</span>
-            <span style={{color:"#475569",flexShrink:0,marginRight:4}}>{j.Service}</span>
+            <span style={{flex:1,color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{j.Client}</span>
+            <span style={{color:"#1e293b",flexShrink:0,marginRight:4}}>{j.Service}</span>
             <span style={{color:"#34d399",fontWeight:700,flexShrink:0,minWidth:52,textAlign:"right"}}>{f$(j.Amount)}</span>
           </div>
         ))}
@@ -177,7 +177,6 @@ function CrewCard({crew,jobs}) {
 export default function App() {
   const [view,     setView]     = useState("kpi");
   const [crew,     setCrew]     = useState("All");
-  const [date,     setDate]     = useState("All");
   const [status,   setStatus]   = useState("All");
   const [search,   setSearch]   = useState("");
   const [expID,    setExpID]    = useState(null);
@@ -186,95 +185,143 @@ export default function App() {
   const [loading,  setLoading]  = useState(true);
   const [lastSync, setLastSync] = useState(null);
 
+  // Date range filter — default to most recent 7 days of available data
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo,   setDateTo]   = useState("");
+
+  // Map a DB row → internal job object
+  const mapRow = r => ({
+    ID:            r.id,
+    CustomerID:    r.customer_id,
+    Client:        r.client,
+    Address:       r.address,
+    City:          r.city,
+    State:         r.state,
+    Zip:           r.zip,
+    Service:       r.service,
+    StartDate:     r.start_date,          // ISO "2025-07-01"
+    EndDate:       r.end_date,
+    StartTime:     r.start_time  || "",
+    EndTime:       r.end_time    || "",
+    Assigned:      r.assigned,
+    Status:        r.status,
+    Amount:        r.amount      || 0,
+    Rate:          r.rate        || 0,
+    Hours:         r.hours       || 0,
+    BudgetedHours: r.budgeted_hours || 0,
+    TotalManHours: r.total_man_hours || 0,
+    IsRescheduled: r.is_rescheduled || false,
+    InvoiceID:     r.invoice_id,
+    DateCompleted: r.date_completed,
+    CompletedUsername: r.completed_username || "",
+    SalesRep:      r.sales_rep   || "",
+    InternalSchedulingNotes: r.internal_scheduling_notes || "",
+    HasComments:   r.has_comments || false,
+    // Normalize job_comments: new schema uses {comment_id,user,text,date,time}
+    JobComments: (r.job_comments || []).map(c => ({
+      CommentID: c.comment_id || c.CommentID,
+      UserName:  c.user || c.UserName,
+      Comment:   c.text || c.Comment,
+      DateTimeSeconds: c.DateTimeSeconds || (c.date ? {
+        Month: parseInt(c.date.split("-")[1]),
+        Day:   parseInt(c.date.split("-")[2]),
+        Year:  parseInt(c.date.split("-")[0]),
+        Hour:  parseInt((c.time||"00:00").split(":")[0]),
+        Minute:parseInt((c.time||"00:00").split(":")[1]),
+      } : null),
+    })),
+  });
+
+  // Fetch with optional date bounds
+  const fetchJobs = async (from, to) => {
+    setLoading(true);
+    let q = supabase.from("sa_jobs").select("*").order("start_date", { ascending: false });
+    if (from) q = q.gte("start_date", from);
+    if (to)   q = q.lte("start_date", to);
+    q = q.limit(5000);
+    const { data, error } = await q;
+    if (!error && data && data.length > 0) {
+      setDbJobs(data.map(mapRow));
+      setLastSync(data[0]?.last_synced_at);
+    } else {
+      setDbJobs([]);
+    }
+    setLoading(false);
+  };
+
+  // Initial load — fetch most recent month with data
   useEffect(() => {
-    async function fetchJobs() {
-      setLoading(true);
-      const { data, error } = await supabase
+    async function init() {
+      // Find max date in DB first
+      const { data } = await supabase
         .from("sa_jobs")
-        .select("*")
+        .select("start_date")
         .order("start_date", { ascending: false })
-        .limit(2000);
-      if (!error && data && data.length > 0) {
-        const mapped = data.map(r => ({
-          ID: r.id, CustomerID: r.customer_id,
-          Client: r.client, Address: r.address, City: r.city,
-          State: r.state, Zip: r.zip, Service: r.service,
-          StartDate: r.start_date, EndDate: r.end_date,
-          StartTime: r.start_time||"", EndTime: r.end_time||"",
-          Assigned: r.assigned, Status: r.status,
-          Amount: r.amount, Rate: r.rate, Hours: r.hours,
-          BudgetedHours: r.budgeted_hours, TotalManHours: r.total_man_hours,
-          NumberOfMen: r.number_of_men, IsRescheduled: r.is_rescheduled,
-          InvoiceID: r.invoice_id, IsInvoiceLocked: r.is_invoice_locked,
-          DateCompleted: r.date_completed, CompletedUsername: r.completed_username,
-          JobComments: r.job_comments||[], InternalSchedulingNotes: r.internal_scheduling_notes||"",
-          ClientNotes: r.client_notes||"", ActualMileage: r.actual_mileage,
-          SalesRep: r.sales_rep, AccountBalance: r.account_balance,
-        }));
-        setDbJobs(mapped);
-        setLastSync(data[0]?.last_synced_at);
+        .limit(1);
+      if (data && data[0]) {
+        const maxDate = data[0].start_date; // "2025-07-31"
+        const [y, m] = maxDate.split("-");
+        const from = `${y}-${m}-01`;
+        const to   = maxDate;
+        setDateFrom(from);
+        setDateTo(to);
+        await fetchJobs(from, to);
       } else {
         setDbJobs([]);
+        setLoading(false);
       }
-      setLoading(false);
     }
-    fetchJobs();
+    init();
   }, []);
 
-  const ALL_JOBS = (dbJobs && dbJobs.length > 0) ? dbJobs : SAMPLE_JOBS;
-  const isLiveData = dbJobs && dbJobs.length > 0;
+  const ALL_JOBS = dbJobs || [];
+  const isLiveData = dbJobs !== null && dbJobs.length > 0;
 
-  const CREWS    = [...new Set(ALL_JOBS.map(j=>j.Assigned).filter(Boolean))].sort();
-  const DATES    = [...new Set(ALL_JOBS.map(j=>j.StartDate).filter(Boolean))].sort();
+  const CREWS = [...new Set(ALL_JOBS.map(j=>j.Assigned).filter(Boolean))].sort();
 
-  const jobs = useMemo(()=>{
-    let j=ALL_JOBS;
-    if(crew  !=="All") j=j.filter(x=>x.Assigned===crew);
-    if(date  !=="All") j=j.filter(x=>x.StartDate===date);
-    if(status!=="All") j=j.filter(x=>String(x.Status)===status);
-    if(search.trim()){
-      const q=search.toLowerCase();
-      j=j.filter(x=>[x.Client,x.Address,x.Service,x.City].some(f=>(f||"").toLowerCase().includes(q)));
+  const jobs = useMemo(() => {
+    let j = ALL_JOBS;
+    if (crew   !== "All") j = j.filter(x => x.Assigned === crew);
+    if (status !== "All") j = j.filter(x => String(x.Status) === status);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      j = j.filter(x => [x.Client, x.Address, x.Service, x.City].some(f => (f||"").toLowerCase().includes(q)));
     }
     return j;
-  },[crew,date,status,search,ALL_JOBS]);
+  }, [crew, status, search, ALL_JOBS]);
 
-  const totalRev  = jobs.reduce((s,j)=>s+(j.Amount||0),0);
-  const totalHrs  = jobs.reduce((s,j)=>s+(j.TotalManHours||0),0);
-  const compCount = jobs.filter(j=>j.Status===3).length;
-  const skipCount = jobs.filter(j=>j.Status===5).length;
-  const openCount = jobs.filter(j=>j.Status===1).length;
+  const totalRev  = jobs.reduce((s,j) => s+(j.Amount||0), 0);
+  const totalHrs  = jobs.reduce((s,j) => s+(j.TotalManHours||0), 0);
+  const compCount = jobs.filter(j => j.Status === 3).length;
+  const skipCount = jobs.filter(j => j.Status === 5).length;
+  const openCount = jobs.filter(j => j.Status === 1).length;
 
-  const byCrew = useMemo(()=>{
-    const m={};
-    jobs.forEach(j=>{if(!m[j.Assigned])m[j.Assigned]=[];m[j.Assigned].push(j);});
-    return Object.entries(m).sort((a,b)=>b[1].reduce((s,j)=>s+(j.Amount||0),0)-a[1].reduce((s,j)=>s+(j.Amount||0),0));
-  },[jobs]);
+  const byCrew = useMemo(() => {
+    const m = {};
+    jobs.forEach(j => { if (!m[j.Assigned]) m[j.Assigned] = []; m[j.Assigned].push(j); });
+    return Object.entries(m).sort((a,b) =>
+      b[1].reduce((s,j)=>s+(j.Amount||0),0) - a[1].reduce((s,j)=>s+(j.Amount||0),0)
+    );
+  }, [jobs]);
+
+  const handleApplyDates = () => fetchJobs(dateFrom, dateTo);
 
   const handleRefresh = async () => {
     setSyncing(true);
-    const { data, error } = await supabase.from("sa_jobs").select("*").order("start_date",{ascending:false}).limit(2000);
-    if (!error && data && data.length > 0) {
-      const mapped = data.map(r => ({
-        ID:r.id,CustomerID:r.customer_id,Client:r.client,Address:r.address,City:r.city,
-        State:r.state,Zip:r.zip,Service:r.service,StartDate:r.start_date,EndDate:r.end_date,
-        StartTime:r.start_time||"",EndTime:r.end_time||"",Assigned:r.assigned,Status:r.status,
-        Amount:r.amount,Rate:r.rate,Hours:r.hours,BudgetedHours:r.budgeted_hours,
-        TotalManHours:r.total_man_hours,NumberOfMen:r.number_of_men,IsRescheduled:r.is_rescheduled,
-        InvoiceID:r.invoice_id,IsInvoiceLocked:r.is_invoice_locked,DateCompleted:r.date_completed,
-        CompletedUsername:r.completed_username,JobComments:r.job_comments||[],
-        InternalSchedulingNotes:r.internal_scheduling_notes||"",ClientNotes:r.client_notes||"",
-        ActualMileage:r.actual_mileage,SalesRep:r.sales_rep,AccountBalance:r.account_balance,
-      }));
-      setDbJobs(mapped);
-      setLastSync(data[0]?.last_synced_at);
-    }
+    await fetchJobs(dateFrom, dateTo);
     setSyncing(false);
   };
 
-  const sel = {background:"#f1f5f9",color:"#475569",border:"1px solid #e2e8f0",borderRadius:6,padding:"6px 10px",fontSize:12,outline:"none",cursor:"pointer"};
+  // Format ISO date for display
+  const fDate = iso => {
+    if (!iso) return "—";
+    const [y,m,d] = iso.split("-");
+    return `${parseInt(m)}/${parseInt(d)}/${y}`;
+  };
+
+  const sel = {background:"#f1f5f9",color:"#1e293b",border:"1px solid #e2e8f0",borderRadius:6,padding:"6px 10px",fontSize:12,outline:"none",cursor:"pointer"};
   const navBtn = (id,label) => (
-    <button onClick={()=>setView(id)} style={{padding:"6px 14px",borderRadius:6,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",letterSpacing:"0.02em",background:view===id?"#1d4ed8":"transparent",color:view===id?"#fff":"#0f172a",transition:"all 0.15s"}}>
+    <button onClick={()=>setView(id)} style={{padding:"6px 14px",borderRadius:6,fontSize:12,fontWeight:600,border:"none",cursor:"pointer",letterSpacing:"0.02em",background:view===id?"#1d4ed8":"transparent",color:view===id?"#fff":"#475569",transition:"all 0.15s"}}>
       {label}
     </button>
   );
@@ -283,12 +330,12 @@ export default function App() {
     <div style={{background:"#ffffff",minHeight:"100vh",fontFamily:"'DM Sans','IBM Plex Sans',system-ui,sans-serif",color:"#0f172a"}}>
 
       {/* ── Top bar ── */}
-      <div style={{background:"#ffffff",borderBottom:"1px solid #e2e8f0",padding:"0 20px",height:50,display:"flex",alignItems:"center",gap:0,position:"sticky",top:0,zIndex:100}}>
+      <div style={{background:"#f8fafc",borderBottom:"1px solid #e2e8f0",padding:"0 20px",height:50,display:"flex",alignItems:"center",gap:0,position:"sticky",top:0,zIndex:100}}>
         <div style={{display:"flex",alignItems:"center",gap:8,marginRight:28}}>
           <div style={{width:26,height:26,borderRadius:6,background:"linear-gradient(135deg,#2563eb,#0891b2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:900,color:"#fff",letterSpacing:"-0.05em"}}>F</div>
           <span style={{fontWeight:800,fontSize:13.5,letterSpacing:"-0.03em",color:"#0f172a"}}>FieldOps</span>
-          <span style={{color:"#94a3b8",fontSize:18,margin:"0 2px"}}>|</span>
-          <span style={{fontSize:12,color:"#94a3b8"}}>Dispatch Dashboard</span>
+          <span style={{color:"#cbd5e1",fontSize:18,margin:"0 2px"}}>|</span>
+          <span style={{fontSize:12,color:"#1e293b"}}>Dispatch Dashboard</span>
         </div>
         <div style={{display:"flex",gap:2}}>
           {navBtn("kpi","KPI Overview")}
@@ -296,12 +343,12 @@ export default function App() {
           {navBtn("jobs","Job List")}
         </div>
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:8}}>
-          <div style={{fontSize:10.5,color:"#475569",background:"#f8fafc",border:"1px solid #0f2040",borderRadius:5,padding:"3px 9px"}}>
-            {loading ? "Loading…" : isLiveData ? `📅 Live · ${ALL_JOBS.length} jobs` : `📅 Sample · ${ALL_JOBS.length} jobs`}
+          <div style={{fontSize:10.5,color:"#1e293b",background:"#f8fafc",border:"1px solid #0f2040",borderRadius:5,padding:"3px 9px"}}>
+            {loading ? "Loading…" : isLiveData ? `📅 Live · ${ALL_JOBS.length} jobs` : `📭 No data`}
           </div>
           <button onClick={handleRefresh} disabled={syncing} style={{background:syncing?"#0f2040":"#0f2d5c",color:syncing?"#334155":"#60a5fa",border:"1px solid #bfdbfe",borderRadius:6,padding:"5px 12px",fontSize:11,fontWeight:700,cursor:syncing?"not-allowed":"pointer",letterSpacing:"0.04em",display:"flex",alignItems:"center",gap:5}}>
             <span style={{display:"inline-block",animation:syncing?"spin 1s linear infinite":"none"}}>↻</span>
-            {syncing?"Syncing…":"SYNC SA"}
+            {syncing?"Refreshing…":"↻ REFRESH"}
           </button>
         </div>
       </div>
@@ -309,12 +356,9 @@ export default function App() {
       {/* ── Filter bar ── */}
       <div style={{background:"#f8fafc",borderBottom:"1px solid #e2e8f0",padding:"8px 20px",display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
         <input placeholder="Search client, address, service…" value={search} onChange={e=>setSearch(e.target.value)}
-          style={{...sel,width:210,padding:"6px 12px",color:"#475569"}}/>
-        <select value={crew}   onChange={e=>setCrew(e.target.value)}   style={sel}>
+          style={{...sel,width:210,padding:"6px 12px"}}/>
+        <select value={crew} onChange={e=>setCrew(e.target.value)} style={sel}>
           <option value="All">All Crews</option>{CREWS.map(c=><option key={c}>{c}</option>)}
-        </select>
-        <select value={date}   onChange={e=>setDate(e.target.value)}   style={sel}>
-          <option value="All">All Dates</option>{DATES.map(d=><option key={d}>{d}</option>)}
         </select>
         <select value={status} onChange={e=>setStatus(e.target.value)} style={sel}>
           <option value="All">All Statuses</option>
@@ -322,6 +366,14 @@ export default function App() {
           <option value="3">Complete</option>
           <option value="5">Skipped</option>
         </select>
+        {/* Date range */}
+        <div style={{display:"flex",alignItems:"center",gap:4,marginLeft:4}}>
+          <span style={{fontSize:11,color:"#64748b"}}>From</span>
+          <input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} style={{...sel,padding:"5px 8px"}}/>
+          <span style={{fontSize:11,color:"#64748b"}}>To</span>
+          <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} style={{...sel,padding:"5px 8px"}}/>
+          <button onClick={handleApplyDates} style={{background:"#1d4ed8",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Apply</button>
+        </div>
         <span style={{fontSize:11,color:"#94a3b8",marginLeft:"auto"}}>{jobs.length} of {ALL_JOBS.length} jobs</span>
       </div>
 
@@ -339,10 +391,10 @@ export default function App() {
           </div>
 
           {/* Crew breakdown */}
-          <div style={{background:"#f8fafc",border:"1px solid #0f2040",borderRadius:10,overflow:"hidden"}}>
-            <div style={{padding:"12px 16px",borderBottom:"1px solid #0f2040",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-              <span style={{fontWeight:700,fontSize:13,color:"#64748b"}}>Crew Performance</span>
-              <span style={{fontSize:10.5,color:"#94a3b8"}}>{DATES[0]} – {DATES[DATES.length-1]}</span>
+          <div style={{background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:10,overflow:"hidden"}}>
+            <div style={{padding:"12px 16px",borderBottom:"1px solid #e2e8f0",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <span style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>Crew Performance</span>
+              <span style={{fontSize:10.5,color:"#94a3b8"}}>{dateFrom && fDate(dateFrom)} – {dateTo && fDate(dateTo)}</span>
             </div>
             <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead>
@@ -361,21 +413,21 @@ export default function App() {
                   const open2=cjobs.filter(j=>j.Status===1).length;
                   const comp2=pct(done2,cjobs.length);
                   return (
-                    <tr key={cr} style={{borderBottom:"1px solid #e2e8f0"}}>
+                    <tr key={cr} style={{borderBottom:"1px solid #f1f5f9"}}>
                       <TD bold color="#0f172a">{cr}</TD>
-                      <TD right color="#334155">{cjobs.length}</TD>
+                      <TD right color="#475569">{cjobs.length}</TD>
                       <TD right bold color="#10b981">{done2}</TD>
                       <TD right bold color={skip2>0?"#ef4444":"#94a3b8"}>{skip2}</TD>
                       <TD right bold color={open2>0?"#f59e0b":"#94a3b8"}>{open2}</TD>
                       <TD right bold color="#059669">{f$(rev2)}</TD>
-                      <TD right color="#475569">{fH(hrs2)}</TD>
+                      <TD right color="#64748b">{fH(hrs2)}</TD>
                       <TD right bold color="#2563eb">{f$(hrs2>0?rev2/hrs2:0)}</TD>
                       <TD right>
                         <div style={{display:"flex",alignItems:"center",gap:6,justifyContent:"flex-end"}}>
-                          <div style={{width:48,height:4,background:"#f1f5f9",borderRadius:2,overflow:"hidden"}}>
+                          <div style={{width:48,height:4,background:"#e2e8f0",borderRadius:2,overflow:"hidden"}}>
                             <div style={{width:`${comp2}%`,height:"100%",background:comp2===100?"#10b981":comp2>70?"#3b82f6":"#f59e0b"}}/>
                           </div>
-                          <span style={{fontSize:11,color:"#475569",minWidth:28,textAlign:"right"}}>{comp2}%</span>
+                          <span style={{fontSize:11,color:"#64748b",minWidth:28,textAlign:"right"}}>{comp2}%</span>
                         </div>
                       </TD>
                     </tr>
@@ -395,22 +447,22 @@ export default function App() {
 
         {/* ══ JOB LIST VIEW ══════════════════════════════════════ */}
         {view==="jobs"&&(
-          <div style={{background:"#f8fafc",border:"1px solid #0f2040",borderRadius:10,overflow:"hidden"}}>
+          <div style={{background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:10,overflow:"hidden"}}>
             <div style={{overflowX:"auto"}}>
               <table style={{width:"100%",borderCollapse:"collapse",minWidth:860}}>
                 <thead>
                   <tr style={{background:"#f1f5f9"}}>
                     <TH>Date</TH><TH>Client</TH><TH>Service</TH><TH>Crew</TH>
                     <TH>Start</TH><TH>End</TH><TH>Status</TH>
-                    <TH right>Amount</TH><TH right>Actual Hrs</TH><TH right>Budget Hrs</TH><TH/>
+                    <TH right>Amount</TH><TH right>Man-Hrs</TH><TH right>Budget Hrs</TH><TH/>
                   </tr>
                 </thead>
                 <tbody>
                   {jobs.length===0&&(
-                    <tr><td colSpan={11} style={{padding:"32px",textAlign:"center",color:"#94a3b8",fontSize:13}}>No jobs match current filters</td></tr>
+                    <tr><td colSpan={11} style={{padding:"32px",textAlign:"center",color:"#94a3b8",fontSize:13}}>{loading?"Loading…":"No jobs match current filters"}</td></tr>
                   )}
                   {jobs.map(j=>(
-                    <JobRow key={j.ID} job={j} expanded={expID===j.ID} onToggle={()=>setExpID(expID===j.ID?null:j.ID)}/>
+                    <JobRow key={j.ID+j.StartDate} job={{...j, StartDate: fDate(j.StartDate)}} expanded={expID===j.ID+j.StartDate} onToggle={()=>setExpID(expID===j.ID+j.StartDate?null:j.ID+j.StartDate)}/>
                   ))}
                 </tbody>
               </table>
@@ -419,24 +471,15 @@ export default function App() {
         )}
       </div>
 
-      {/* ── Footer ── */}
-      <div style={{margin:"0 20px 20px",background:"#f8fafc",border:"1px solid #0a1628",borderRadius:8,padding:"10px 14px",display:"flex",gap:10,alignItems:"center"}}>
-        <span style={{fontSize:14}}>🗄️</span>
-        <span style={{fontSize:11,color:"#94a3b8",lineHeight:1.5}}>
-          <span style={{color:"#475569",fontWeight:700}}>Supabase schema ready · </span>
-          Tables: <code style={{color:"#0f172a",fontSize:10.5}}>sa_jobs</code> · <code style={{color:"#0f172a",fontSize:10.5}}>sa_job_snapshots</code> · <code style={{color:"#0f172a",fontSize:10.5}}>sa_sync_log</code> ·
-          Views: <code style={{color:"#8b5cf6",fontSize:10.5}}>v_crew_daily_kpis</code> · <code style={{color:"#8b5cf6",fontSize:10.5}}>v_crew_weekly_kpis</code> · <code style={{color:"#8b5cf6",fontSize:10.5}}>v_skipped_jobs</code>
-        </span>
-      </div>
-
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
         @keyframes spin { to { transform: rotate(360deg); } }
         * { box-sizing: border-box; }
         ::-webkit-scrollbar { width: 5px; height: 5px; }
-        ::-webkit-scrollbar-track { background: #070f1f; }
-        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
-        select option { background: #0f172a; }
+        ::-webkit-scrollbar-track { background: #f8fafc; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        select option { background: #fff; }
+        input[type="date"] { color-scheme: light; }
       `}</style>
     </div>
   );
