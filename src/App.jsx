@@ -60,7 +60,7 @@ function KPITile({label, value, sub, accent="#3b82f6", warn=false}) {
   return (
     <div style={{background:"#f1f5f9",border:`1px solid ${warn?"rgba(239,68,68,0.3)":"#1e293b"}`,borderRadius:10,padding:"18px 20px",borderTop:`3px solid ${warn?"#ef4444":accent}`,display:"flex",flexDirection:"column",gap:3}}>
       <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.1em",color:"#1e293b",textTransform:"uppercase"}}>{label}</div>
-      <div style={{fontSize:26,fontWeight:800,color:warn?"#ef4444":"#f1f5f9",letterSpacing:"-0.02em",lineHeight:1.1}}>{value}</div>
+      <div style={{fontSize:26,fontWeight:800,color:warn?"#ef4444":"#0f172a",letterSpacing:"-0.02em",lineHeight:1.1}}>{value}</div>
       {sub&&<div style={{fontSize:11,color:"#1e293b",marginTop:2}}>{sub}</div>}
     </div>
   );
@@ -298,7 +298,7 @@ export default function App() {
 
   const byCrew = useMemo(() => {
     const m = {};
-    jobs.forEach(j => { if (!m[j.Assigned]) m[j.Assigned] = []; m[j.Assigned].push(j); });
+    jobs.forEach(j => { const k = j.Assigned || "(Unassigned)"; if (!m[k]) m[k] = []; m[k].push(j); });
     return Object.entries(m).sort((a,b) =>
       b[1].reduce((s,j)=>s+(j.Amount||0),0) - a[1].reduce((s,j)=>s+(j.Amount||0),0)
     );
