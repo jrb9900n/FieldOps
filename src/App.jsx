@@ -367,7 +367,7 @@ export default function App() {
     let q = supabase.from("sa_jobs").select("*").order("start_date", { ascending: false });
     if (from) q = q.gte("start_date", from);
     if (to)   q = q.lte("start_date", to);
-    q = q.limit(10000);
+    q = q.range(0, 9999);
     const { data, error } = await q;
     if (!error && data && data.length > 0) {
       setDbJobs(data.map(mapRow));
