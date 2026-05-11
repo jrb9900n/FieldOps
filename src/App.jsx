@@ -330,7 +330,7 @@ function WaitingListPanel({ items, filter, setFilter }) {
                 <span style={{fontSize:10,background:"#eff6ff",color:"#1d4ed8",border:"1px solid #bfdbfe",borderRadius:3,padding:"1px 5px"}}>{j.service_code||"—"}</span>
                 {daysW!=null&&<span style={{fontSize:10,background:urgent?"#fef2f2":"#f8fafc",color:urgent?"#dc2626":"#64748b",border:`1px solid ${urgent?"#fecaca":"#e2e8f0"}`,borderRadius:3,padding:"1px 5px"}}>{daysW}d</span>}
               </div>
-              {j.notes&&<div style={{fontSize:10,color:"#94a3b8",marginTop:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{j.notes}</div>}
+              {(j.internal_notes||j.notes)&&<div style={{fontSize:10,color:"#94a3b8",marginTop:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{j.internal_notes||j.notes}</div>}
             </div>
           );
         })}
