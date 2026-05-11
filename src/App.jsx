@@ -340,7 +340,7 @@ function WaitingListPanel({ items, filter, setFilter }) {
 }
 
 // ─── Week Dispatch Board ───────────────────────────────────────
-function WeekDispatchBoard({ draft, weekStart }) {
+function WeekDispatchBoard({ draft, calJobs = [], weekStart }) {
   const weekDays = useMemo(()=>{
     if(!weekStart) return [];
     const days=[];
@@ -351,23 +351,45 @@ function WeekDispatchBoard({ draft, weekStart }) {
 
   const DAY_NAMES=["Mon","Tue","Wed","Thu","Fri"];
 
-  if(!draft?.days){
+  // Build SA calendar jobs lookup: { "YYYY-MM-DD": { "Crew": [jobs] } }
+  const calByDayCrew = useMemo(()=>{
+    const m={};
+    calJobs.forEach(j=>{
+      const date=j.StartDate;
+      const crew=j.Assigned||"(Unassigned)";
+      if(!m[date]) m[date]={};
+      if(!m[date][crew]) m[date][crew]=[];
+      m[date][crew].push(j);
+    });
+    return m;
+  },[calJobs]);
+
+  // All crews = union of SA calendar crews + AI draft crews
+  const allCrews = useMemo(()=>{
+    const s=new Set();
+    calJobs.forEach(j=>{ if(j.Assigned) s.add(j.Assigned); });
+    if(draft?.days) Object.values(draft.days).forEach(day=>Object.keys(day).forEach(c=>s.add(c)));
+    return [...s].sort();
+  },[calJobs, draft]);
+
+  const STATUS_ICON = { 3:"✓", 5:"✕" };
+  const STATUS_COLOR = { 3:"#10b981", 5:"#ef4444" };
+
+  if(allCrews.length===0){
     return (
       <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:8,color:"#94a3b8"}}>
         <div style={{fontSize:36}}>📅</div>
-        <div style={{fontWeight:600,fontSize:14}}>No schedule draft</div>
-        <div style={{fontSize:12}}>Use the chat panel → "Schedule Dave's App 3 fert jobs for next week"</div>
+        <div style={{fontWeight:600,fontSize:14}}>No jobs scheduled this week</div>
+        <div style={{fontSize:12}}>Use the chat panel → "Schedule App 3 fert jobs for next week"</div>
       </div>
     );
   }
 
-  const draftCrews=[...new Set(Object.values(draft.days).flatMap(day=>Object.keys(day)))].sort();
-
   return (
     <div style={{flex:1,overflowX:"auto",overflowY:"auto"}}>
-      {draft.summary&&(
-        <div style={{padding:"8px 14px",background:"#f0fdf4",borderBottom:"1px solid #bbf7d0",fontSize:12,color:"#166534",lineHeight:1.5}}>
-          <strong>Summary:</strong> {draft.summary}
+      {draft?.summary&&(
+        <div style={{padding:"8px 14px",background:"#eff6ff",borderBottom:"1px solid #bfdbfe",fontSize:12,color:"#1e40af",lineHeight:1.5}}>
+          <strong>AI Draft:</strong> {draft.summary}
         </div>
       )}
       <table style={{borderCollapse:"collapse",width:"100%",minWidth:600}}>
@@ -375,7 +397,7 @@ function WeekDispatchBoard({ draft, weekStart }) {
           <tr style={{background:"#f8fafc"}}>
             <th style={{padding:"8px 12px",fontSize:11,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.05em",borderBottom:"2px solid #e2e8f0",width:130,textAlign:"left",borderRight:"1px solid #e2e8f0"}}>Crew</th>
             {weekDays.map((date,i)=>(
-              <th key={date} style={{padding:"8px 12px",fontSize:11,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.05em",borderBottom:"2px solid #e2e8f0",borderLeft:"1px solid #e2e8f0",textAlign:"left",minWidth:170}}>
+              <th key={date} style={{padding:"8px 12px",fontSize:11,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.05em",borderBottom:"2px solid #e2e8f0",borderLeft:"1px solid #e2e8f0",textAlign:"left",minWidth:180}}>
                 <div>{DAY_NAMES[i]}</div>
                 <div style={{fontSize:10,fontWeight:400,color:"#94a3b8"}}>{fDate(date)}</div>
               </th>
@@ -383,15 +405,30 @@ function WeekDispatchBoard({ draft, weekStart }) {
           </tr>
         </thead>
         <tbody>
-          {draftCrews.map(crewName=>(
+          {allCrews.map(crewName=>(
             <tr key={crewName} style={{borderBottom:"1px solid #e2e8f0"}}>
               <td style={{padding:"8px 12px",fontWeight:700,fontSize:12,color:"#0f172a",verticalAlign:"top",background:"#fafafa",borderRight:"1px solid #e2e8f0",whiteSpace:"nowrap"}}>{crewName}</td>
               {weekDays.map(date=>{
-                const jobs=draft.days[date]?.[crewName]||[];
+                const saJobs    = calByDayCrew[date]?.[crewName] || [];
+                const draftJobs = draft?.days?.[date]?.[crewName] || [];
                 return (
-                  <td key={date} style={{padding:5,verticalAlign:"top",borderLeft:"1px solid #e2e8f0",background:"#fff",minHeight:50}}>
-                    {jobs.map((job,idx)=>(
-                      <div key={idx} style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:5,padding:"4px 7px",marginBottom:3,fontSize:11,cursor:"default"}}>
+                  <td key={date} style={{padding:5,verticalAlign:"top",borderLeft:"1px solid #e2e8f0",background:"#fff"}}>
+                    {/* SA scheduled jobs — green */}
+                    {saJobs.map((job,idx)=>(
+                      <div key={"sa-"+idx} style={{background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:5,padding:"4px 7px",marginBottom:3,fontSize:11}}>
+                        <div style={{fontWeight:700,color:"#166534",lineHeight:1.3}}>{job.Client}</div>
+                        <div style={{color:"#16a34a",fontSize:10}}>{job.City}</div>
+                        <div style={{color:"#64748b",fontSize:10,marginTop:1}}>{job.Service}</div>
+                        {STATUS_ICON[job.Status]&&(
+                          <div style={{color:STATUS_COLOR[job.Status],fontSize:9.5,fontWeight:600,marginTop:2}}>
+                            {STATUS_ICON[job.Status]} {job.Status===3?"Complete":"Skipped"}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    {/* AI draft jobs — blue */}
+                    {draftJobs.map((job,idx)=>(
+                      <div key={"draft-"+idx} style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:5,padding:"4px 7px",marginBottom:3,fontSize:11,borderStyle:"dashed"}}>
                         <div style={{fontWeight:700,color:"#1e40af",lineHeight:1.3}}>{job.client}</div>
                         <div style={{color:"#3b82f6",fontSize:10}}>{job.city}</div>
                         <div style={{color:"#64748b",fontSize:10,marginTop:1}}>{job.service}</div>
@@ -399,7 +436,9 @@ function WeekDispatchBoard({ draft, weekStart }) {
                         {job.days_waiting>0&&<div style={{color:"#94a3b8",fontSize:9.5}}>{job.days_waiting}d waiting</div>}
                       </div>
                     ))}
-                    {jobs.length===0&&<div style={{color:"#e2e8f0",fontSize:11,textAlign:"center",padding:"10px 0"}}>—</div>}
+                    {saJobs.length===0&&draftJobs.length===0&&(
+                      <div style={{color:"#e2e8f0",fontSize:11,textAlign:"center",padding:"10px 0"}}>—</div>
+                    )}
                   </td>
                 );
               })}
@@ -490,6 +529,7 @@ export default function App() {
   const [dispatchDraft,    setDispatchDraft]    = useState(null);
   const [draftId,          setDraftId]          = useState(null);
   const [dispatchWeekStart,setDispatchWeekStart]= useState(nextMonday);
+  const [calJobs,          setCalJobs]          = useState([]);
 
   const mapRow = r => ({
     ID:            r.id,
@@ -563,7 +603,7 @@ export default function App() {
 
   // Load waiting list for dispatch board
   useEffect(() => {
-    supabase.from("sa_waiting_list").select("*").order("date_added",{ascending:true}).limit(300)
+    supabase.from("sa_waiting_list").select("*").order("date_added",{ascending:true}).limit(2000)
       .then(({data})=>{ if(data) setWaitingList(data); });
   }, []);
 
@@ -580,6 +620,20 @@ export default function App() {
       .subscribe();
     return () => sub.unsubscribe();
   }, [view, sessionId]);
+
+  // Load SA scheduled jobs for the selected week
+  useEffect(() => {
+    if(view !== "dispatch" || !dispatchWeekStart) return;
+    const start = new Date(dispatchWeekStart + "T12:00:00");
+    const end   = new Date(start);
+    end.setDate(end.getDate() + 4);
+    const weekEnd = end.toISOString().split("T")[0];
+    supabase.from("sa_jobs").select("*")
+      .gte("start_date", dispatchWeekStart)
+      .lte("start_date", weekEnd)
+      .order("start_date", { ascending: true })
+      .then(({ data }) => { setCalJobs(data ? data.map(mapRow) : []); });
+  }, [view, dispatchWeekStart]);
 
   async function sendMessage() {
     const msg = chatInput.trim();
@@ -681,14 +735,18 @@ export default function App() {
         <div style={{display:"flex",height:"calc(100vh - 50px)",overflow:"hidden"}}>
           <WaitingListPanel items={waitingList} filter={wlFilter} setFilter={setWlFilter}/>
           <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-            <div style={{padding:"8px 14px",borderBottom:"1px solid #e2e8f0",display:"flex",alignItems:"center",gap:10,background:"#fff",flexShrink:0}}>
+            <div style={{padding:"8px 14px",borderBottom:"1px solid #e2e8f0",display:"flex",alignItems:"center",gap:10,background:"#fff",flexShrink:0,flexWrap:"wrap"}}>
               <span style={{fontSize:11,fontWeight:600,color:"#64748b"}}>Week of</span>
               <input type="date" value={dispatchWeekStart} onChange={e=>setDispatchWeekStart(e.target.value)}
                 style={{border:"1px solid #e2e8f0",borderRadius:5,padding:"4px 8px",fontSize:11,outline:"none"}}/>
-              {draftId&&<span style={{fontSize:10.5,background:"#f0fdf4",color:"#16a34a",border:"1px solid #bbf7d0",borderRadius:4,padding:"2px 8px",fontWeight:600}}>Draft saved</span>}
-              <span style={{marginLeft:"auto",fontSize:11,color:"#94a3b8"}}>{waitingList.length} jobs waiting</span>
+              {draftId&&<span style={{fontSize:10.5,background:"#eff6ff",color:"#1d4ed8",border:"1px solid #bfdbfe",borderRadius:4,padding:"2px 8px",fontWeight:600}}>AI draft saved</span>}
+              <div style={{display:"flex",gap:8,alignItems:"center",marginLeft:8}}>
+                <span style={{display:"flex",alignItems:"center",gap:4,fontSize:10.5,color:"#166534"}}><span style={{width:10,height:10,borderRadius:2,background:"#bbf7d0",border:"1px solid #86efac",display:"inline-block"}}/>SA Scheduled</span>
+                <span style={{display:"flex",alignItems:"center",gap:4,fontSize:10.5,color:"#1e40af"}}><span style={{width:10,height:10,borderRadius:2,background:"#bfdbfe",border:"1px dashed #93c5fd",display:"inline-block"}}/>AI Draft</span>
+              </div>
+              <span style={{marginLeft:"auto",fontSize:11,color:"#94a3b8"}}>{waitingList.length} jobs waiting · {calJobs.length} this week</span>
             </div>
-            <WeekDispatchBoard draft={dispatchDraft} weekStart={dispatchWeekStart}/>
+            <WeekDispatchBoard draft={dispatchDraft} calJobs={calJobs} weekStart={dispatchWeekStart}/>
           </div>
           <ChatPanel messages={chatMessages} input={chatInput} setInput={setChatInput} onSend={sendMessage} loading={chatLoading}/>
         </div>
