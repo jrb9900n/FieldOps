@@ -101,21 +101,23 @@ export default function ExpensePortal({ token }) {
     if (!category) { setError("Please select what this cost is related to."); return; }
     if (showAssetSection && !assetId) { setError("Please select the asset this expense is for."); return; }
     if (!description.trim()) { setError("Please describe the item or service purchased."); return; }
-    if (!receiptFile) { setError("Please upload a photo of the receipt."); return; }
+    if (!receiptFile && !report.receipt_path) { setError("Please upload a photo of the receipt."); return; }
 
     setError(null);
     setSubmitting(true);
 
     try {
-      // Upload receipt to Supabase Storage
-      setUploadProgress("Uploading receipt…");
-      const ext = receiptFile.name.split(".").pop() || "jpg";
-      const path = `${token}/${Date.now()}.${ext}`;
-      const { error: uploadErr } = await supabase.storage
-        .from("expense-receipts")
-        .upload(path, receiptFile, { contentType: receiptFile.type, upsert: false });
-
-      if (uploadErr) throw new Error(`Receipt upload failed: ${uploadErr.message}`);
+      // Upload receipt to Supabase Storage (skip if already uploaded via email)
+      let path = report.receipt_path || null;
+      if (!path) {
+        setUploadProgress("Uploading receipt…");
+        const ext = receiptFile.name.split(".").pop() || "jpg";
+        path = `${token}/${Date.now()}.${ext}`;
+        const { error: uploadErr } = await supabase.storage
+          .from("expense-receipts")
+          .upload(path, receiptFile, { contentType: receiptFile.type, upsert: false });
+        if (uploadErr) throw new Error(`Receipt upload failed: ${uploadErr.message}`);
+      }
 
       setUploadProgress("Saving…");
 
@@ -327,7 +329,15 @@ export default function ExpensePortal({ token }) {
 
             <div>
               <label style={label}>Receipt photo *</label>
-              {!receiptPreview ? (
+              {report.receipt_path && !receiptPreview ? (
+                <div style={{ border: "2px solid #bbf7d0", borderRadius: 10, padding: "16px", background: "#f0fdf4", display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ fontSize: 24 }}>✅</span>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#15803d" }}>Receipt received via email</div>
+                    <div style={{ fontSize: 12, color: "#166534", marginTop: 2 }}>Your emailed receipt has been attached to this report.</div>
+                  </div>
+                </div>
+              ) : !receiptPreview ? (
                 <div
                   onClick={() => fileInputRef.current?.click()}
                   style={{ border: "2px dashed #cbd5e1", borderRadius: 10, padding: "28px 16px", textAlign: "center", cursor: "pointer", background: "#f8fafc" }}
