@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { LoginGate, EstimatesView, WorkOrdersView } from "./EstimatesModule";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -305,6 +306,7 @@ function CrewCard({crew,jobs}) {
 // ─── Main App ─────────────────────────────────────────────────
 export default function App() {
   const [view,        setView]      = useState("kpi");
+  const [authUser,    setAuthUser]  = useState(undefined); // undefined=loading, null=anon, obj=authed
   const [selectedCrews,  setCrews]  = useState([]);
   const [selectedSvcs,   setSvcs]   = useState([]);
   const [selectedStats,  setStats]  = useState([]);
@@ -376,6 +378,15 @@ export default function App() {
     }
     setLoading(false);
   };
+
+  // Auth session tracking
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => setAuthUser(user || null));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthUser(session?.user || null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     async function init() {
@@ -465,6 +476,9 @@ export default function App() {
           {navBtn("crew","By Crew")}
           {navBtn("jobs","Job List")}
           {navBtn("snow","❄ Snow Events")}
+          <span style={{color:"#e2e8f0",fontSize:16,margin:"0 4px"}}>|</span>
+          {navBtn("estimates","Estimates")}
+          {navBtn("orders","Work Orders")}
         </div>
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:8}}>
           <div style={{fontSize:10.5,color:"#94a3b8",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:5,padding:"3px 9px"}}>
@@ -474,6 +488,11 @@ export default function App() {
             <span style={{display:"inline-block",animation:syncing?"spin 1s linear infinite":"none"}}>↻</span>
             {syncing?"Refreshing…":"Refresh"}
           </button>
+          {authUser && (
+            <button onClick={()=>supabase.auth.signOut()} style={{background:"none",border:"1px solid #e2e8f0",borderRadius:6,padding:"5px 10px",fontSize:11,color:"#64748b",cursor:"pointer"}}>
+              Sign out
+            </button>
+          )}
         </div>
       </div>
 
@@ -579,6 +598,28 @@ export default function App() {
               </table>
             </div>
           </div>
+        )}
+
+        {/* ══ ESTIMATES VIEW ════════════════════════════════════ */}
+        {view==="estimates"&&(
+          authUser === undefined ? (
+            <div style={{textAlign:"center",padding:"40px",color:"#94a3b8",fontSize:13}}>Loading…</div>
+          ) : authUser ? (
+            <EstimatesView supabase={supabase} />
+          ) : (
+            <LoginGate supabase={supabase} onLogin={() => {}} />
+          )
+        )}
+
+        {/* ══ WORK ORDERS VIEW ══════════════════════════════════ */}
+        {view==="orders"&&(
+          authUser === undefined ? (
+            <div style={{textAlign:"center",padding:"40px",color:"#94a3b8",fontSize:13}}>Loading…</div>
+          ) : authUser ? (
+            <WorkOrdersView supabase={supabase} />
+          ) : (
+            <LoginGate supabase={supabase} onLogin={() => {}} />
+          )
         )}
 
         {/* ══ SNOW EVENTS VIEW ══════════════════════════════════ */}
