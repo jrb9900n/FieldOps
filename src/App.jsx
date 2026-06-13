@@ -689,7 +689,22 @@ export default function App() {
   },[selectedEvt, jobs, ALL_JOBS]);
 
   const handleApplyDates = () => fetchJobs(dateFrom, dateTo);
-  const handleRefresh    = async () => { setSyncing(true); await fetchJobs(dateFrom, dateTo); setSyncing(false); };
+  const handleRefresh    = async () => {
+    setSyncing(true);
+    try {
+      await fetch(`${AGENT_URL}/sync-waiting-list`, {
+        method: 'POST',
+        headers: { 'X-Execute-Secret': CHAT_SECRET },
+      });
+    } catch(e) { console.warn('sync-waiting-list:', e); }
+    try {
+      const { data: wlData } = await supabase.from("sa_waiting_list").select("*").order("date_added",{ascending:true}).limit(2000);
+      if (wlData) setWaitingList(wlData);
+      await fetchJobs(dateFrom, dateTo);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const sel = {background:"#f1f5f9",color:"#1e293b",border:"1px solid #e2e8f0",borderRadius:6,padding:"6px 10px",fontSize:12,outline:"none",cursor:"pointer"};
   const navBtn = (id,label) => (
