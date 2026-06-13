@@ -7,6 +7,9 @@ const supabase = createClient(
   import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
+const AGENT_URL   = import.meta.env.VITE_AGENT_URL   || "https://agent.jrboehlke.com";
+const CHAT_SECRET = import.meta.env.VITE_CHAT_SECRET  || "";
+
 // ─── Constants ────────────────────────────────────────────────
 const STATUS = {
   1: { label:"Open",     dot:"#f59e0b", bg:"rgba(245,158,11,0.1)",  border:"rgba(245,158,11,0.25)" },
@@ -20,6 +23,14 @@ const fH = n => n==null?"—":Number(n).toFixed(2)+"h";
 const rph = jobs => { const rev=jobs.reduce((s,j)=>s+(j.Amount||0),0); const hrs=jobs.reduce((s,j)=>s+(j.TotalManHours||0),0); return hrs>0?rev/hrs:0; };
 const pct = (a,b) => b>0?Math.round(100*a/b):0;
 const fDate = iso => { if(!iso)return"—"; const [y,m,d]=iso.split("-"); return `${parseInt(m)}/${parseInt(d)}/${y}`; };
+
+function nextMonday() {
+  const d = new Date();
+  const day = d.getDay();
+  const diff = day === 0 ? 1 : 8 - day;
+  d.setDate(d.getDate() + diff);
+  return d.toISOString().split("T")[0];
+}
 
 // ─── Multi-select dropdown ─────────────────────────────────────
 function MultiSelect({ label, options, selected, onChange, width=160 }) {
@@ -162,7 +173,6 @@ function JobDetailModal({ job, onClose }) {
 
 // ─── Snow Event View ───────────────────────────────────────────
 function SnowEventView({ jobs }) {
-  // Group by customer_id to find multi-service properties
   const byCustomer = useMemo(()=>{
     const m = {};
     jobs.forEach(j=>{
@@ -173,16 +183,15 @@ function SnowEventView({ jobs }) {
     return Object.values(m).sort((a,b)=>b.jobs.length-a.jobs.length);
   },[jobs]);
 
-  const multi    = byCustomer.filter(c=>c.jobs.length>1);
-  const skipped  = byCustomer.filter(c=>c.jobs.every(j=>j.Status===5));
-  const done     = byCustomer.filter(c=>c.jobs.some(j=>j.Status===3)&&c.jobs.length===1);
+  const multi   = byCustomer.filter(c=>c.jobs.length>1);
+  const skipped = byCustomer.filter(c=>c.jobs.every(j=>j.Status===5));
+  const done    = byCustomer.filter(c=>c.jobs.some(j=>j.Status===3)&&c.jobs.length===1);
 
   const TH2 = ({children,right})=><th style={{padding:"7px 10px",fontSize:10,fontWeight:700,color:"#64748b",letterSpacing:"0.07em",textTransform:"uppercase",borderBottom:"1px solid #e2e8f0",textAlign:right?"right":"left",whiteSpace:"nowrap"}}>{children}</th>;
   const TD2 = ({children,right,color})=><td style={{padding:"7px 10px",fontSize:12,color:color||"#374151",textAlign:right?"right":"left",verticalAlign:"middle"}}>{children}</td>;
 
   return (
     <div style={{display:"flex",flexDirection:"column",gap:16}}>
-      {/* Summary tiles */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
         <div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:10,padding:"14px 16px"}}>
           <div style={{fontSize:10,fontWeight:700,color:"#9a3412",textTransform:"uppercase",letterSpacing:"0.08em"}}>Multiple Visits</div>
@@ -200,8 +209,6 @@ function SnowEventView({ jobs }) {
           <div style={{fontSize:11,color:"#15803d"}}>properties done exactly once</div>
         </div>
       </div>
-
-      {/* Multi-visit table */}
       {multi.length>0&&(
         <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,overflow:"hidden"}}>
           <div style={{padding:"10px 14px",borderBottom:"1px solid #e2e8f0",fontWeight:700,fontSize:13,color:"#0f172a"}}>🔄 Multiple Visits ({multi.length} properties)</div>
@@ -223,8 +230,6 @@ function SnowEventView({ jobs }) {
           </div>
         </div>
       )}
-
-      {/* Skipped table */}
       {skipped.length>0&&(
         <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,overflow:"hidden"}}>
           <div style={{padding:"10px 14px",borderBottom:"1px solid #e2e8f0",fontWeight:700,fontSize:13,color:"#0f172a"}}>⛔ Skipped Entirely ({skipped.length} properties)</div>
@@ -259,10 +264,7 @@ function JobRow({job,onClick}) {
       onMouseEnter={e=>e.currentTarget.style.background="#f8fafc"}
       onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
       <TD><span style={{fontSize:11,color:"#64748b"}}>{job.StartDate}</span></TD>
-      <TD>
-        <div style={{fontWeight:600,color:"#0f172a",fontSize:12.5}}>{job.Client}</div>
-        <div style={{fontSize:10.5,color:"#94a3b8",marginTop:1}}>{job.Address}, {job.City}</div>
-      </TD>
+      <TD><div style={{fontWeight:600,color:"#0f172a",fontSize:12.5}}>{job.Client}</div><div style={{fontSize:10.5,color:"#94a3b8",marginTop:1}}>{job.Address}, {job.City}</div></TD>
       <TD><Pill>{job.Service}</Pill></TD>
       <TD><Pill color="#8b5cf6">{job.Assigned||"—"}</Pill></TD>
       <TD mono color="#64748b">{job.StartTime||"—"}</TD>
@@ -276,7 +278,6 @@ function JobRow({job,onClick}) {
   );
 }
 
-// ─── Crew card ─────────────────────────────────────────────────
 function CrewCard({crew,jobs}) {
   const rev=jobs.reduce((s,j)=>s+(j.Amount||0),0);
   const hrs=jobs.reduce((s,j)=>s+(j.TotalManHours||0),0);
@@ -303,23 +304,234 @@ function CrewCard({crew,jobs}) {
   );
 }
 
+// ─── Waiting List Panel ────────────────────────────────────────
+function WaitingListPanel({ items, filter, setFilter }) {
+  const today = new Date();
+  const filtered = filter
+    ? items.filter(j => (j.service_code||"").toLowerCase().includes(filter.toLowerCase()) || (j.client_name||"").toLowerCase().includes(filter.toLowerCase()))
+    : items;
+  return (
+    <div style={{width:240,flexShrink:0,borderRight:"1px solid #e2e8f0",overflowY:"auto",background:"#fff",display:"flex",flexDirection:"column"}}>
+      <div style={{padding:"10px 12px",borderBottom:"1px solid #e2e8f0",position:"sticky",top:0,background:"#fff",zIndex:1}}>
+        <div style={{fontWeight:700,fontSize:12,color:"#0f172a",marginBottom:6}}>Waiting List</div>
+        <input placeholder="Filter…" value={filter} onChange={e=>setFilter(e.target.value)}
+          style={{width:"100%",border:"1px solid #e2e8f0",borderRadius:5,padding:"4px 8px",fontSize:11,outline:"none"}}/>
+        <div style={{fontSize:10,color:"#94a3b8",marginTop:4}}>{filtered.length} jobs</div>
+      </div>
+      <div style={{flex:1,overflowY:"auto"}}>
+        {filtered.length===0&&<div style={{padding:"20px 12px",color:"#94a3b8",fontSize:12,textAlign:"center"}}>No jobs</div>}
+        {filtered.map(j=>{
+          const daysW = j.date_added ? Math.floor((today-new Date(j.date_added))/86400000) : null;
+          const urgent = daysW > 30;
+          return (
+            <div key={j.id} style={{padding:"8px 12px",borderBottom:"1px solid #f8fafc"}}>
+              <div style={{fontWeight:600,fontSize:11.5,color:"#0f172a",lineHeight:1.3}}>{j.client_name}</div>
+              <div style={{fontSize:10.5,color:"#64748b"}}>{j.city}{j.zip?`, ${j.zip}`:""}</div>
+              <div style={{display:"flex",gap:3,marginTop:3,flexWrap:"wrap"}}>
+                <span style={{fontSize:10,background:"#eff6ff",color:"#1d4ed8",border:"1px solid #bfdbfe",borderRadius:3,padding:"1px 5px"}}>{j.service_code||"—"}</span>
+                {daysW!=null&&<span style={{fontSize:10,background:urgent?"#fef2f2":"#f8fafc",color:urgent?"#dc2626":"#64748b",border:`1px solid ${urgent?"#fecaca":"#e2e8f0"}`,borderRadius:3,padding:"1px 5px"}}>{daysW}d</span>}
+              </div>
+              {(j.internal_notes||j.notes)&&<div style={{fontSize:10,color:"#94a3b8",marginTop:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{j.internal_notes||j.notes}</div>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Week Dispatch Board ───────────────────────────────────────
+function WeekDispatchBoard({ draft, calJobs = [], weekStart }) {
+  const weekDays = useMemo(()=>{
+    if(!weekStart) return [];
+    const days=[];
+    const start=new Date(weekStart+"T12:00:00");
+    for(let i=0;i<5;i++){const d=new Date(start);d.setDate(d.getDate()+i);days.push(d.toISOString().split("T")[0]);}
+    return days;
+  },[weekStart]);
+
+  const DAY_NAMES=["Mon","Tue","Wed","Thu","Fri"];
+
+  // Build SA calendar jobs lookup: { "YYYY-MM-DD": { "Crew": [jobs] } }
+  const calByDayCrew = useMemo(()=>{
+    const m={};
+    calJobs.forEach(j=>{
+      const date=j.StartDate;
+      const crew=j.Assigned||"(Unassigned)";
+      if(!m[date]) m[date]={};
+      if(!m[date][crew]) m[date][crew]=[];
+      m[date][crew].push(j);
+    });
+    return m;
+  },[calJobs]);
+
+  // All crews = union of SA calendar crews + AI draft crews
+  const allCrews = useMemo(()=>{
+    const s=new Set();
+    calJobs.forEach(j=>{ if(j.Assigned) s.add(j.Assigned); });
+    if(draft?.days) Object.values(draft.days).forEach(day=>Object.keys(day).forEach(c=>s.add(c)));
+    return [...s].sort();
+  },[calJobs, draft]);
+
+  const STATUS_ICON = { 3:"✓", 5:"✕" };
+  const STATUS_COLOR = { 3:"#10b981", 5:"#ef4444" };
+
+  if(allCrews.length===0){
+    return (
+      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:8,color:"#94a3b8"}}>
+        <div style={{fontSize:36}}>📅</div>
+        <div style={{fontWeight:600,fontSize:14}}>No jobs scheduled this week</div>
+        <div style={{fontSize:12}}>Use the chat panel → "Schedule App 3 fert jobs for next week"</div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{flex:1,overflowX:"auto",overflowY:"auto"}}>
+      {draft?.summary&&(
+        <div style={{padding:"8px 14px",background:"#eff6ff",borderBottom:"1px solid #bfdbfe",fontSize:12,color:"#1e40af",lineHeight:1.5}}>
+          <strong>AI Draft:</strong> {draft.summary}
+        </div>
+      )}
+      <table style={{borderCollapse:"collapse",width:"100%",minWidth:600}}>
+        <thead>
+          <tr style={{background:"#f8fafc"}}>
+            <th style={{padding:"8px 12px",fontSize:11,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.05em",borderBottom:"2px solid #e2e8f0",width:130,textAlign:"left",borderRight:"1px solid #e2e8f0"}}>Crew</th>
+            {weekDays.map((date,i)=>(
+              <th key={date} style={{padding:"8px 12px",fontSize:11,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.05em",borderBottom:"2px solid #e2e8f0",borderLeft:"1px solid #e2e8f0",textAlign:"left",minWidth:180}}>
+                <div>{DAY_NAMES[i]}</div>
+                <div style={{fontSize:10,fontWeight:400,color:"#94a3b8"}}>{fDate(date)}</div>
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {allCrews.map(crewName=>(
+            <tr key={crewName} style={{borderBottom:"1px solid #e2e8f0"}}>
+              <td style={{padding:"8px 12px",fontWeight:700,fontSize:12,color:"#0f172a",verticalAlign:"top",background:"#fafafa",borderRight:"1px solid #e2e8f0",whiteSpace:"nowrap"}}>{crewName}</td>
+              {weekDays.map(date=>{
+                const saJobs    = calByDayCrew[date]?.[crewName] || [];
+                const draftJobs = draft?.days?.[date]?.[crewName] || [];
+                return (
+                  <td key={date} style={{padding:5,verticalAlign:"top",borderLeft:"1px solid #e2e8f0",background:"#fff"}}>
+                    {/* SA scheduled jobs — green */}
+                    {saJobs.map((job,idx)=>(
+                      <div key={"sa-"+idx} style={{background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:5,padding:"4px 7px",marginBottom:3,fontSize:11}}>
+                        <div style={{fontWeight:700,color:"#166534",lineHeight:1.3}}>{job.Client}</div>
+                        <div style={{color:"#16a34a",fontSize:10}}>{job.City}</div>
+                        <div style={{color:"#64748b",fontSize:10,marginTop:1}}>{job.Service}</div>
+                        {STATUS_ICON[job.Status]&&(
+                          <div style={{color:STATUS_COLOR[job.Status],fontSize:9.5,fontWeight:600,marginTop:2}}>
+                            {STATUS_ICON[job.Status]} {job.Status===3?"Complete":"Skipped"}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    {/* AI draft jobs — blue */}
+                    {draftJobs.map((job,idx)=>(
+                      <div key={"draft-"+idx} style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:5,padding:"4px 7px",marginBottom:3,fontSize:11,borderStyle:"dashed"}}>
+                        <div style={{fontWeight:700,color:"#1e40af",lineHeight:1.3}}>{job.client}</div>
+                        <div style={{color:"#3b82f6",fontSize:10}}>{job.city}</div>
+                        <div style={{color:"#64748b",fontSize:10,marginTop:1}}>{job.service}</div>
+                        {job.interval_ok===false&&<div style={{color:"#dc2626",fontSize:9.5,fontWeight:600,marginTop:2}}>⚠ interval too short</div>}
+                        {job.days_waiting>0&&<div style={{color:"#94a3b8",fontSize:9.5}}>{job.days_waiting}d waiting</div>}
+                      </div>
+                    ))}
+                    {saJobs.length===0&&draftJobs.length===0&&(
+                      <div style={{color:"#e2e8f0",fontSize:11,textAlign:"center",padding:"10px 0"}}>—</div>
+                    )}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ─── Chat Panel ────────────────────────────────────────────────
+function ChatPanel({ messages, input, setInput, onSend, loading }) {
+  const bottomRef = useRef(null);
+  useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:"smooth"}); },[messages, loading]);
+
+  return (
+    <div style={{width:300,flexShrink:0,borderLeft:"1px solid #e2e8f0",display:"flex",flexDirection:"column",background:"#fff"}}>
+      <div style={{padding:"10px 14px",borderBottom:"1px solid #e2e8f0",fontWeight:700,fontSize:12,color:"#0f172a",display:"flex",alignItems:"center",gap:6}}>
+        <span style={{width:8,height:8,borderRadius:"50%",background:"#10b981",display:"inline-block"}}/>
+        AI Scheduler
+      </div>
+      <div style={{flex:1,overflowY:"auto",padding:"12px 12px",display:"flex",flexDirection:"column",gap:8}}>
+        {messages.length===0&&(
+          <div style={{color:"#94a3b8",fontSize:12,textAlign:"center",marginTop:24,lineHeight:1.6}}>
+            <div style={{fontSize:28,marginBottom:6}}>🗓</div>
+            <div style={{fontWeight:600,color:"#64748b",marginBottom:4}}>Try asking:</div>
+            <div>"Schedule Dave's App 3 fert jobs for next week"</div>
+            <div style={{marginTop:4}}>"Add mosquito control on the same routes"</div>
+          </div>
+        )}
+        {messages.map((m,i)=>(
+          <div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
+            <div style={{maxWidth:"90%",padding:"7px 10px",borderRadius:m.role==="user"?"10px 10px 3px 10px":"10px 10px 10px 3px",background:m.role==="user"?"#1d4ed8":m.error?"#fef2f2":"#f1f5f9",color:m.role==="user"?"#fff":m.error?"#dc2626":"#0f172a",fontSize:12,lineHeight:1.55,whiteSpace:"pre-wrap"}}>
+              {m.text}
+            </div>
+          </div>
+        ))}
+        {loading&&(
+          <div style={{display:"flex",justifyContent:"flex-start"}}>
+            <div style={{padding:"7px 10px",background:"#f1f5f9",borderRadius:"10px 10px 10px 3px",fontSize:12,color:"#94a3b8"}}>Thinking…</div>
+          </div>
+        )}
+        <div ref={bottomRef}/>
+      </div>
+      <div style={{padding:"8px 10px",borderTop:"1px solid #e2e8f0",display:"flex",gap:6}}>
+        <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&onSend()}
+          placeholder="Schedule, adjust, confirm…" disabled={loading}
+          style={{flex:1,border:"1px solid #e2e8f0",borderRadius:7,padding:"6px 9px",fontSize:11.5,outline:"none",background:loading?"#f8fafc":"#fff"}}/>
+        <button onClick={onSend} disabled={loading||!input.trim()}
+          style={{background:"#1d4ed8",color:"#fff",border:"none",borderRadius:7,padding:"6px 11px",fontSize:11.5,fontWeight:700,cursor:loading||!input.trim()?"not-allowed":"pointer",opacity:loading||!input.trim()?0.55:1}}>
+          Send
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main App ─────────────────────────────────────────────────
 export default function App() {
-  const [view,        setView]      = useState("kpi");
-  const [authUser,    setAuthUser]  = useState(undefined); // undefined=loading, null=anon, obj=authed
-  const [selectedCrews,  setCrews]  = useState([]);
-  const [selectedSvcs,   setSvcs]   = useState([]);
-  const [selectedStats,  setStats]  = useState([]);
-  const [search,      setSearch]    = useState("");
-  const [modalJob,    setModalJob]  = useState(null);
-  const [syncing,     setSyncing]   = useState(false);
-  const [dbJobs,      setDbJobs]    = useState(null);
-  const [loading,     setLoading]   = useState(true);
-  const [dateFrom,    setDateFrom]  = useState("");
-  const [dateTo,      setDateTo]    = useState("");
-  // Snow event filter
-  const [snowEvents,  setSnowEvents]= useState([]); // [{id,name}]
-  const [selectedEvt, setSelectedEvt]= useState("");  // event ID or ""
+  const [view,          setView]        = useState("kpi");
+  const [authUser,      setAuthUser]    = useState(undefined); // undefined=loading, null=anon, obj=authed
+  const [selectedCrews, setCrews]       = useState([]);
+  const [selectedSvcs,  setSvcs]        = useState([]);
+  const [selectedStats, setStats]       = useState([]);
+  const [search,        setSearch]      = useState("");
+  const [modalJob,      setModalJob]    = useState(null);
+  const [syncing,       setSyncing]     = useState(false);
+  const [dbJobs,        setDbJobs]      = useState(null);
+  const [loading,       setLoading]     = useState(true);
+  const [dateFrom,      setDateFrom]    = useState("");
+  const [dateTo,        setDateTo]      = useState("");
+  const [snowEvents,    setSnowEvents]  = useState([]);
+  const [selectedEvt,   setSelectedEvt] = useState("");
+
+  // Dispatch / scheduling state
+  const [sessionId] = useState(()=>{
+    const stored = localStorage.getItem("fo_session_id");
+    if(stored) return stored;
+    const id = crypto.randomUUID();
+    localStorage.setItem("fo_session_id", id);
+    return id;
+  });
+  const [chatMessages,     setChatMessages]     = useState([]);
+  const [chatInput,        setChatInput]        = useState("");
+  const [chatLoading,      setChatLoading]      = useState(false);
+  const [waitingList,      setWaitingList]      = useState([]);
+  const [wlFilter,         setWlFilter]         = useState("");
+  const [dispatchDraft,    setDispatchDraft]    = useState(null);
+  const [draftId,          setDraftId]          = useState(null);
+  const [dispatchWeekStart,setDispatchWeekStart]= useState(nextMonday);
+  const [calJobs,          setCalJobs]          = useState([]);
 
   const mapRow = r => ({
     ID:            r.id,
@@ -339,9 +551,9 @@ export default function App() {
     Amount:        r.amount      || 0,
     Rate:          r.rate        || 0,
     Hours:         r.hours       || 0,
-    BudgetedHours: r.budgeted_hours || 0,
-    TotalManHours: r.total_man_hours || 0,
-    IsRescheduled: r.is_rescheduled || false,
+    BudgetedHours: r.budgeted_hours   || 0,
+    TotalManHours: r.total_man_hours  || 0,
+    IsRescheduled: r.is_rescheduled   || false,
     InvoiceID:     r.invoice_id,
     DateCompleted: r.date_completed,
     CompletedUsername: r.completed_username || "",
@@ -351,6 +563,7 @@ export default function App() {
     ScheduleType:  r.schedule_type || "",
     Latitude:      r.latitude,
     Longitude:     r.longitude,
+    Priority:      r.priority,
     JobComments: (r.job_comments || []).map(c => ({
       CommentID: c.comment_id || c.CommentID,
       UserName:  c.user || c.UserName,
@@ -371,11 +584,8 @@ export default function App() {
     if (to)   q = q.lte("start_date", to);
     q = q.range(0, 9999);
     const { data, error } = await q;
-    if (!error && data && data.length > 0) {
-      setDbJobs(data.map(mapRow));
-    } else {
-      setDbJobs([]);
-    }
+    if (!error && data) setDbJobs(data.map(mapRow));
+    else setDbJobs([]);
     setLoading(false);
   };
 
@@ -391,7 +601,7 @@ export default function App() {
   useEffect(() => {
     async function init() {
       const { data } = await supabase.from("sa_jobs").select("start_date").order("start_date",{ascending:false}).limit(1);
-      if (data && data[0]) {
+      if (data?.[0]) {
         const maxDate = data[0].start_date;
         const [y,m] = maxDate.split("-");
         const from = `${y}-${m}-01`;
@@ -402,21 +612,71 @@ export default function App() {
     init();
   }, []);
 
-  const ALL_JOBS = dbJobs || [];
+  // Load waiting list for dispatch board
+  useEffect(() => {
+    supabase.from("sa_waiting_list").select("*").order("date_added",{ascending:true}).limit(2000)
+      .then(({data})=>{ if(data) setWaitingList(data); });
+  }, []);
 
-  // Derive filter options
+  // Load latest schedule draft for this session + subscribe to live updates
+  useEffect(() => {
+    if(view !== "dispatch") return;
+    supabase.from("schedule_drafts").select("*").eq("session_id",sessionId).eq("status","draft")
+      .order("updated_at",{ascending:false}).limit(1)
+      .then(({data})=>{ if(data?.[0]){setDispatchDraft(data[0].schedule_data);setDraftId(data[0].id);} });
+
+    const sub = supabase.channel(`draft_${sessionId}`)
+      .on("postgres_changes",{event:"*",schema:"public",table:"schedule_drafts",filter:`session_id=eq.${sessionId}`},
+        payload=>{ if(payload.new?.schedule_data){setDispatchDraft(payload.new.schedule_data);setDraftId(payload.new.id);} })
+      .subscribe();
+    return () => sub.unsubscribe();
+  }, [view, sessionId]);
+
+  // Load SA scheduled jobs for the selected week
+  useEffect(() => {
+    if(view !== "dispatch" || !dispatchWeekStart) return;
+    const start = new Date(dispatchWeekStart + "T12:00:00");
+    const end   = new Date(start);
+    end.setDate(end.getDate() + 4);
+    const weekEnd = end.toISOString().split("T")[0];
+    supabase.from("sa_jobs").select("*")
+      .gte("start_date", dispatchWeekStart)
+      .lte("start_date", weekEnd)
+      .order("start_date", { ascending: true })
+      .then(({ data }) => { setCalJobs(data ? data.map(mapRow) : []); });
+  }, [view, dispatchWeekStart]);
+
+  async function sendMessage() {
+    const msg = chatInput.trim();
+    if(!msg || chatLoading) return;
+    setChatInput("");
+    setChatMessages(prev=>[...prev,{role:"user",text:msg}]);
+    setChatLoading(true);
+    try {
+      const res = await fetch(`${AGENT_URL}/fieldops-chat`,{
+        method:"POST",
+        headers:{"Content-Type":"application/json","X-Execute-Secret":CHAT_SECRET},
+        body:JSON.stringify({message:msg,sessionId,weekStart:dispatchWeekStart}),
+      });
+      const data = await res.json();
+      setChatMessages(prev=>[...prev,{role:"agent",text:data.reply||data.error||"No response",error:!!data.error}]);
+    } catch(err){
+      setChatMessages(prev=>[...prev,{role:"agent",text:`Connection error: ${err.message}`,error:true}]);
+    }
+    setChatLoading(false);
+  }
+
+  const ALL_JOBS = dbJobs || [];
   const CREWS    = useMemo(()=>[...new Set(ALL_JOBS.map(j=>j.Assigned).filter(Boolean))].sort(),[ALL_JOBS]);
   const SERVICES = useMemo(()=>[...new Set(ALL_JOBS.map(j=>j.Service).filter(Boolean))].sort(),[ALL_JOBS]);
-
-  // Status options
   const STATUS_OPTS = ["Open","Complete","Skipped"];
   const statusToInt = {"Open":1,"Complete":3,"Skipped":5};
 
   const jobs = useMemo(() => {
     let j = ALL_JOBS;
-    if (selectedCrews.length>0)  j = j.filter(x => selectedCrews.includes(x.Assigned));
-    if (selectedSvcs.length>0)   j = j.filter(x => selectedSvcs.includes(x.Service));
-    if (selectedStats.length>0)  j = j.filter(x => selectedStats.map(s=>statusToInt[s]).includes(x.Status));
+    if (selectedCrews.length>0) j = j.filter(x=>selectedCrews.includes(x.Assigned));
+    if (selectedSvcs.length>0)  j = j.filter(x=>selectedSvcs.includes(x.Service));
+    if (selectedStats.length>0) j = j.filter(x=>selectedStats.map(s=>statusToInt[s]).includes(x.Status));
     if (search.trim()) { const q=search.toLowerCase(); j=j.filter(x=>[x.Client,x.Address,x.Service,x.City].some(f=>(f||"").toLowerCase().includes(q))); }
     return j;
   }, [selectedCrews, selectedSvcs, selectedStats, search, ALL_JOBS]);
@@ -433,22 +693,29 @@ export default function App() {
     return Object.entries(m).sort((a,b)=>b[1].reduce((s,j)=>s+(j.Amount||0),0)-a[1].reduce((s,j)=>s+(j.Amount||0),0));
   },[jobs]);
 
-  // Snow events — derived from jobs that have schedule_type=Snow, grouped by DispatchID
-  // Since we don't store event ID separately, we identify snow events by unique date+assigned combos
-  // Better: group snow jobs by start_date as proxy for events
-  const snowJobDates = useMemo(()=>{
-    const snowJobs = ALL_JOBS.filter(j=>j.ScheduleType==="Snow");
-    const dates = [...new Set(snowJobs.map(j=>j.StartDate))].sort().reverse();
-    return dates;
-  },[ALL_JOBS]);
-
+  const snowJobDates = useMemo(()=>[...new Set(ALL_JOBS.filter(j=>j.ScheduleType==="Snow").map(j=>j.StartDate))].sort().reverse(),[ALL_JOBS]);
   const snowFilteredJobs = useMemo(()=>{
     if(!selectedEvt) return jobs.filter(j=>j.ScheduleType==="Snow");
     return ALL_JOBS.filter(j=>j.ScheduleType==="Snow"&&j.StartDate===selectedEvt);
   },[selectedEvt, jobs, ALL_JOBS]);
 
-  const handleApplyDates = () => { fetchJobs(dateFrom, dateTo); };
-  const handleRefresh = async () => { setSyncing(true); await fetchJobs(dateFrom, dateTo); setSyncing(false); };
+  const handleApplyDates = () => fetchJobs(dateFrom, dateTo);
+  const handleRefresh    = async () => {
+    setSyncing(true);
+    try {
+      await fetch(`${AGENT_URL}/sync-waiting-list`, {
+        method: 'POST',
+        headers: { 'X-Execute-Secret': CHAT_SECRET },
+      });
+    } catch(e) { console.warn('sync-waiting-list:', e); }
+    try {
+      const { data: wlData } = await supabase.from("sa_waiting_list").select("*").order("date_added",{ascending:true}).limit(2000);
+      if (wlData) setWaitingList(wlData);
+      await fetchJobs(dateFrom, dateTo);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const sel = {background:"#f1f5f9",color:"#1e293b",border:"1px solid #e2e8f0",borderRadius:6,padding:"6px 10px",fontSize:12,outline:"none",cursor:"pointer"};
   const navBtn = (id,label) => (
@@ -457,10 +724,10 @@ export default function App() {
     </button>
   );
 
+  const isDispatch = view === "dispatch";
+
   return (
     <div style={{background:"#f8fafc",minHeight:"100vh",fontFamily:"'DM Sans','IBM Plex Sans',system-ui,sans-serif",color:"#0f172a"}}>
-
-      {/* Modal */}
       {modalJob&&<JobDetailModal job={modalJob} onClose={()=>setModalJob(null)}/>}
 
       {/* ── Top bar ── */}
@@ -476,6 +743,7 @@ export default function App() {
           {navBtn("crew","By Crew")}
           {navBtn("jobs","Job List")}
           {navBtn("snow","❄ Snow Events")}
+          {navBtn("dispatch","📅 Dispatch")}
           <span style={{color:"#e2e8f0",fontSize:16,margin:"0 4px"}}>|</span>
           {navBtn("estimates","Estimates")}
           {navBtn("orders","Work Orders")}
@@ -496,109 +764,152 @@ export default function App() {
         </div>
       </div>
 
-      {/* ── Filter bar ── */}
-      <div style={{background:"#fff",borderBottom:"1px solid #e2e8f0",padding:"8px 20px",display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-        <input placeholder="Search client, address, service…" value={search} onChange={e=>setSearch(e.target.value)}
-          style={{...sel,width:210,padding:"6px 12px"}}/>
-        <MultiSelect label="Crews"    options={CREWS}       selected={selectedCrews} onChange={setCrews}  width={150}/>
-        <MultiSelect label="Services" options={SERVICES}    selected={selectedSvcs}  onChange={setSvcs}   width={150}/>
-        <MultiSelect label="Statuses" options={STATUS_OPTS} selected={selectedStats} onChange={setStats}  width={140}/>
-        <div style={{display:"flex",alignItems:"center",gap:4,marginLeft:4}}>
-          <span style={{fontSize:11,color:"#94a3b8"}}>From</span>
-          <input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} style={{...sel,padding:"5px 8px"}}/>
-          <span style={{fontSize:11,color:"#94a3b8"}}>To</span>
-          <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} style={{...sel,padding:"5px 8px"}}/>
-          <button onClick={handleApplyDates} style={{background:"#1d4ed8",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Apply</button>
+      {/* ── Dispatch view — full-height, no padding wrapper ── */}
+      {isDispatch&&(
+        <div style={{display:"flex",height:"calc(100vh - 50px)",overflow:"hidden"}}>
+          <WaitingListPanel items={waitingList} filter={wlFilter} setFilter={setWlFilter}/>
+          <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+            <div style={{padding:"8px 14px",borderBottom:"1px solid #e2e8f0",display:"flex",alignItems:"center",gap:10,background:"#fff",flexShrink:0,flexWrap:"wrap"}}>
+              <span style={{fontSize:11,fontWeight:600,color:"#64748b"}}>Week of</span>
+              <input type="date" value={dispatchWeekStart} onChange={e=>setDispatchWeekStart(e.target.value)}
+                style={{border:"1px solid #e2e8f0",borderRadius:5,padding:"4px 8px",fontSize:11,outline:"none"}}/>
+              {draftId&&<span style={{fontSize:10.5,background:"#eff6ff",color:"#1d4ed8",border:"1px solid #bfdbfe",borderRadius:4,padding:"2px 8px",fontWeight:600}}>AI draft saved</span>}
+              <div style={{display:"flex",gap:8,alignItems:"center",marginLeft:8}}>
+                <span style={{display:"flex",alignItems:"center",gap:4,fontSize:10.5,color:"#166534"}}><span style={{width:10,height:10,borderRadius:2,background:"#bbf7d0",border:"1px solid #86efac",display:"inline-block"}}/>SA Scheduled</span>
+                <span style={{display:"flex",alignItems:"center",gap:4,fontSize:10.5,color:"#1e40af"}}><span style={{width:10,height:10,borderRadius:2,background:"#bfdbfe",border:"1px dashed #93c5fd",display:"inline-block"}}/>AI Draft</span>
+              </div>
+              <span style={{marginLeft:"auto",fontSize:11,color:"#94a3b8"}}>{waitingList.length} jobs waiting · {calJobs.length} this week</span>
+            </div>
+            <WeekDispatchBoard draft={dispatchDraft} calJobs={calJobs} weekStart={dispatchWeekStart}/>
+          </div>
+          <ChatPanel messages={chatMessages} input={chatInput} setInput={setChatInput} onSend={sendMessage} loading={chatLoading}/>
         </div>
-        <span style={{fontSize:11,color:"#94a3b8",marginLeft:"auto"}}>{jobs.length.toLocaleString()} of {ALL_JOBS.length.toLocaleString()} jobs</span>
-      </div>
+      )}
 
-      <div style={{padding:"18px 20px"}}>
-
-        {/* ══ KPI VIEW ══════════════════════════════════════════ */}
-        {view==="kpi"&&<>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(155px,1fr))",gap:10,marginBottom:20}}>
-            <KPITile label="Revenue"    value={f$(totalRev)}               sub={`${jobs.length.toLocaleString()} jobs`} accent="#3b82f6"/>
-            <KPITile label="Man-Hours"  value={fH(totalHrs)}               sub="Actual on-site"                         accent="#06b6d4"/>
-            <KPITile label="Rev / Hour" value={f$(rph(jobs))}              sub="All crews combined"                     accent="#8b5cf6"/>
-            <KPITile label="Completion" value={`${pct(compCount,jobs.length)}%`} sub={`${compCount.toLocaleString()} complete`} accent="#10b981"/>
-            <KPITile label="Skipped"    value={skipCount}                  sub="Need reschedule"                        accent="#ef4444" warn={skipCount>0}/>
-            <KPITile label="Open"       value={openCount}                  sub="Not yet done"                           accent="#f59e0b"/>
-          </div>
-          <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,overflow:"hidden"}}>
-            <div style={{padding:"12px 16px",borderBottom:"1px solid #e2e8f0",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-              <span style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>Crew Performance</span>
-              <span style={{fontSize:10.5,color:"#94a3b8"}}>{dateFrom&&fDate(dateFrom)} – {dateTo&&fDate(dateTo)}</span>
+      {/* ── All other views ── */}
+      {!isDispatch&&(
+        <>
+          {/* Filter bar */}
+          <div style={{background:"#fff",borderBottom:"1px solid #e2e8f0",padding:"8px 20px",display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+            <input placeholder="Search client, address, service…" value={search} onChange={e=>setSearch(e.target.value)} style={{...sel,width:210,padding:"6px 12px"}}/>
+            <MultiSelect label="Crews"    options={CREWS}       selected={selectedCrews} onChange={setCrews}  width={150}/>
+            <MultiSelect label="Services" options={SERVICES}    selected={selectedSvcs}  onChange={setSvcs}   width={150}/>
+            <MultiSelect label="Statuses" options={STATUS_OPTS} selected={selectedStats} onChange={setStats}  width={140}/>
+            <div style={{display:"flex",alignItems:"center",gap:4,marginLeft:4}}>
+              <span style={{fontSize:11,color:"#94a3b8"}}>From</span>
+              <input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} style={{...sel,padding:"5px 8px"}}/>
+              <span style={{fontSize:11,color:"#94a3b8"}}>To</span>
+              <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} style={{...sel,padding:"5px 8px"}}/>
+              <button onClick={handleApplyDates} style={{background:"#1d4ed8",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Apply</button>
             </div>
-            <table style={{width:"100%",borderCollapse:"collapse"}}>
-              <thead><tr style={{background:"#f8fafc"}}>
-                {["Crew","Jobs","Done","Skipped","Open","Revenue","Man-Hrs","Rev/Hr","Completion"].map(h=>(
-                  <TH key={h} right={!["Crew"].includes(h)}>{h}</TH>
-                ))}
-              </tr></thead>
-              <tbody>
-                {byCrew.map(([cr,cjobs])=>{
-                  const rev2=cjobs.reduce((s,j)=>s+(j.Amount||0),0);
-                  const hrs2=cjobs.reduce((s,j)=>s+(j.TotalManHours||0),0);
-                  const done2=cjobs.filter(j=>j.Status===3).length;
-                  const skip2=cjobs.filter(j=>j.Status===5).length;
-                  const open2=cjobs.filter(j=>j.Status===1).length;
-                  const comp2=pct(done2,cjobs.length);
-                  return (
-                    <tr key={cr} style={{borderBottom:"1px solid #f8fafc"}}>
-                      <TD bold color="#0f172a">{cr}</TD>
-                      <TD right color="#64748b">{cjobs.length}</TD>
-                      <TD right bold color="#10b981">{done2}</TD>
-                      <TD right bold color={skip2>0?"#ef4444":"#94a3b8"}>{skip2}</TD>
-                      <TD right bold color={open2>0?"#f59e0b":"#94a3b8"}>{open2}</TD>
-                      <TD right bold color="#059669">{f$(rev2)}</TD>
-                      <TD right color="#64748b">{fH(hrs2)}</TD>
-                      <TD right bold color="#2563eb">{f$(hrs2>0?rev2/hrs2:0)}</TD>
-                      <TD right>
-                        <div style={{display:"flex",alignItems:"center",gap:6,justifyContent:"flex-end"}}>
-                          <div style={{width:48,height:4,background:"#e2e8f0",borderRadius:2,overflow:"hidden"}}>
-                            <div style={{width:`${comp2}%`,height:"100%",background:comp2===100?"#10b981":comp2>70?"#3b82f6":"#f59e0b"}}/>
-                          </div>
-                          <span style={{fontSize:11,color:"#94a3b8",minWidth:28,textAlign:"right"}}>{comp2}%</span>
-                        </div>
-                      </TD>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <span style={{fontSize:11,color:"#94a3b8",marginLeft:"auto"}}>{jobs.length.toLocaleString()} of {ALL_JOBS.length.toLocaleString()} jobs</span>
           </div>
-        </>}
 
-        {/* ══ BY CREW VIEW ══════════════════════════════════════ */}
-        {view==="crew"&&(
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:14}}>
-            {byCrew.map(([cr,cjobs])=><CrewCard key={cr} crew={cr} jobs={cjobs}/>)}
-          </div>
-        )}
+          <div style={{padding:"18px 20px"}}>
+            {/* KPI VIEW */}
+            {view==="kpi"&&<>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(155px,1fr))",gap:10,marginBottom:20}}>
+                <KPITile label="Revenue"    value={f$(totalRev)}                    sub={`${jobs.length.toLocaleString()} jobs`} accent="#3b82f6"/>
+                <KPITile label="Man-Hours"  value={fH(totalHrs)}                    sub="Actual on-site"                         accent="#06b6d4"/>
+                <KPITile label="Rev / Hour" value={f$(rph(jobs))}                   sub="All crews combined"                     accent="#8b5cf6"/>
+                <KPITile label="Completion" value={`${pct(compCount,jobs.length)}%`} sub={`${compCount.toLocaleString()} complete`} accent="#10b981"/>
+                <KPITile label="Skipped"    value={skipCount}                       sub="Need reschedule"                        accent="#ef4444" warn={skipCount>0}/>
+                <KPITile label="Open"       value={openCount}                       sub="Not yet done"                           accent="#f59e0b"/>
+              </div>
+              <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,overflow:"hidden"}}>
+                <div style={{padding:"12px 16px",borderBottom:"1px solid #e2e8f0",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <span style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>Crew Performance</span>
+                  <span style={{fontSize:10.5,color:"#94a3b8"}}>{dateFrom&&fDate(dateFrom)} – {dateTo&&fDate(dateTo)}</span>
+                </div>
+                <table style={{width:"100%",borderCollapse:"collapse"}}>
+                  <thead><tr style={{background:"#f8fafc"}}>
+                    {["Crew","Jobs","Done","Skipped","Open","Revenue","Man-Hrs","Rev/Hr","Completion"].map(h=>(
+                      <TH key={h} right={h!=="Crew"}>{h}</TH>
+                    ))}
+                  </tr></thead>
+                  <tbody>
+                    {byCrew.map(([cr,cjobs])=>{
+                      const rev2=cjobs.reduce((s,j)=>s+(j.Amount||0),0);
+                      const hrs2=cjobs.reduce((s,j)=>s+(j.TotalManHours||0),0);
+                      const done2=cjobs.filter(j=>j.Status===3).length;
+                      const skip2=cjobs.filter(j=>j.Status===5).length;
+                      const open2=cjobs.filter(j=>j.Status===1).length;
+                      const comp2=pct(done2,cjobs.length);
+                      return (
+                        <tr key={cr} style={{borderBottom:"1px solid #f8fafc"}}>
+                          <TD bold color="#0f172a">{cr}</TD>
+                          <TD right color="#64748b">{cjobs.length}</TD>
+                          <TD right bold color="#10b981">{done2}</TD>
+                          <TD right bold color={skip2>0?"#ef4444":"#94a3b8"}>{skip2}</TD>
+                          <TD right bold color={open2>0?"#f59e0b":"#94a3b8"}>{open2}</TD>
+                          <TD right bold color="#059669">{f$(rev2)}</TD>
+                          <TD right color="#64748b">{fH(hrs2)}</TD>
+                          <TD right bold color="#2563eb">{f$(hrs2>0?rev2/hrs2:0)}</TD>
+                          <TD right>
+                            <div style={{display:"flex",alignItems:"center",gap:6,justifyContent:"flex-end"}}>
+                              <div style={{width:48,height:4,background:"#e2e8f0",borderRadius:2,overflow:"hidden"}}>
+                                <div style={{width:`${comp2}%`,height:"100%",background:comp2===100?"#10b981":comp2>70?"#3b82f6":"#f59e0b"}}/>
+                              </div>
+                              <span style={{fontSize:11,color:"#94a3b8",minWidth:28,textAlign:"right"}}>{comp2}%</span>
+                            </div>
+                          </TD>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>}
 
-        {/* ══ JOB LIST VIEW ══════════════════════════════════════ */}
-        {view==="jobs"&&(
-          <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,overflow:"hidden"}}>
-            <div style={{overflowX:"auto"}}>
-              <table style={{width:"100%",borderCollapse:"collapse",minWidth:860}}>
-                <thead><tr style={{background:"#f8fafc"}}>
-                  <TH>Date</TH><TH>Client</TH><TH>Service</TH><TH>Crew</TH>
-                  <TH>Start</TH><TH>End</TH><TH>Status</TH>
-                  <TH right>Amount</TH><TH right>Man-Hrs</TH><TH right>Budget Hrs</TH><TH/>
-                </tr></thead>
-                <tbody>
-                  {jobs.length===0&&(
-                    <tr><td colSpan={11} style={{padding:"32px",textAlign:"center",color:"#94a3b8",fontSize:13}}>{loading?"Loading…":"No jobs match current filters"}</td></tr>
-                  )}
-                  {jobs.map(j=>(
-                    <JobRow key={j.ID+j.StartDate} job={{...j,StartDate:fDate(j.StartDate)}} onClick={()=>setModalJob(j)}/>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            {/* BY CREW VIEW */}
+            {view==="crew"&&(
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:14}}>
+                {byCrew.map(([cr,cjobs])=><CrewCard key={cr} crew={cr} jobs={cjobs}/>)}
+              </div>
+            )}
+
+            {/* JOB LIST VIEW */}
+            {view==="jobs"&&(
+              <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,overflow:"hidden"}}>
+                <div style={{overflowX:"auto"}}>
+                  <table style={{width:"100%",borderCollapse:"collapse",minWidth:860}}>
+                    <thead><tr style={{background:"#f8fafc"}}>
+                      <TH>Date</TH><TH>Client</TH><TH>Service</TH><TH>Crew</TH>
+                      <TH>Start</TH><TH>End</TH><TH>Status</TH>
+                      <TH right>Amount</TH><TH right>Man-Hrs</TH><TH right>Budget Hrs</TH><TH/>
+                    </tr></thead>
+                    <tbody>
+                      {jobs.length===0&&<tr><td colSpan={11} style={{padding:"32px",textAlign:"center",color:"#94a3b8",fontSize:13}}>{loading?"Loading…":"No jobs match current filters"}</td></tr>}
+                      {jobs.map(j=><JobRow key={j.ID+j.StartDate} job={{...j,StartDate:fDate(j.StartDate)}} onClick={()=>setModalJob(j)}/>)}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* SNOW EVENTS VIEW */}
+            {view==="snow"&&(
+              <div>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+                  <span style={{fontSize:13,fontWeight:600,color:"#0f172a"}}>Snow Event Date:</span>
+                  <select value={selectedEvt} onChange={e=>setSelectedEvt(e.target.value)} style={{...sel,minWidth:200}}>
+                    <option value="">All Snow Events</option>
+                    {snowJobDates.map(d=><option key={d} value={d}>{fDate(d)}</option>)}
+                  </select>
+                  <span style={{fontSize:11,color:"#94a3b8"}}>{snowFilteredJobs.length} jobs</span>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:10,marginBottom:16}}>
+                  <KPITile label="Revenue"  value={f$(snowFilteredJobs.reduce((s,j)=>s+(j.Amount||0),0))} sub={`${snowFilteredJobs.length} jobs`} accent="#0ea5e9"/>
+                  <KPITile label="Complete" value={snowFilteredJobs.filter(j=>j.Status===3).length} sub="completed" accent="#10b981"/>
+                  <KPITile label="Skipped"  value={snowFilteredJobs.filter(j=>j.Status===5).length} sub="skipped" accent="#ef4444" warn={snowFilteredJobs.filter(j=>j.Status===5).length>0}/>
+                  <KPITile label="Open"     value={snowFilteredJobs.filter(j=>j.Status===1).length} sub="pending" accent="#f59e0b"/>
+                </div>
+                <SnowEventView jobs={snowFilteredJobs}/>
+              </div>
+            )}
           </div>
-        )}
+        </>
+      )}
 
         {/* ══ ESTIMATES VIEW ════════════════════════════════════ */}
         {view==="estimates"&&(
@@ -621,30 +932,6 @@ export default function App() {
             <LoginGate supabase={supabase} onLogin={() => {}} />
           )
         )}
-
-        {/* ══ SNOW EVENTS VIEW ══════════════════════════════════ */}
-        {view==="snow"&&(
-          <div>
-            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
-              <span style={{fontSize:13,fontWeight:600,color:"#0f172a"}}>Snow Event Date:</span>
-              <select value={selectedEvt} onChange={e=>setSelectedEvt(e.target.value)} style={{...sel,minWidth:200}}>
-                <option value="">All Snow Events</option>
-                {snowJobDates.map(d=><option key={d} value={d}>{fDate(d)}</option>)}
-              </select>
-              <span style={{fontSize:11,color:"#94a3b8"}}>{snowFilteredJobs.length} jobs</span>
-            </div>
-            {/* KPI summary for snow */}
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:10,marginBottom:16}}>
-              <KPITile label="Revenue" value={f$(snowFilteredJobs.reduce((s,j)=>s+(j.Amount||0),0))} sub={`${snowFilteredJobs.length} jobs`} accent="#0ea5e9"/>
-              <KPITile label="Complete" value={snowFilteredJobs.filter(j=>j.Status===3).length} sub="completed" accent="#10b981"/>
-              <KPITile label="Skipped" value={snowFilteredJobs.filter(j=>j.Status===5).length} sub="skipped" accent="#ef4444" warn={snowFilteredJobs.filter(j=>j.Status===5).length>0}/>
-              <KPITile label="Open" value={snowFilteredJobs.filter(j=>j.Status===1).length} sub="pending" accent="#f59e0b"/>
-            </div>
-            <SnowEventView jobs={snowFilteredJobs}/>
-          </div>
-        )}
-
-      </div>
 
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');

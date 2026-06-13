@@ -2,5 +2,9 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "installCommand": "npm install",
-  "framework": "vite"
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/expense-consent", "destination": "/index.html" },
+    { "source": "/expense/(.*)", "destination": "/index.html" }
+  ]
 }
