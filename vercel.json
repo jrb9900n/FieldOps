@@ -7,6 +7,7 @@
   "rewrites": [
     { "source": "/expense-consent", "destination": "/index.html" },
     { "source": "/privacy-policy",  "destination": "/index.html" },
+    { "source": "/enroll",          "destination": "/index.html" },
     { "source": "/expense/(.*)",    "destination": "/index.html" }
   ]
 }
