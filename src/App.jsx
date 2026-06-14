@@ -304,13 +304,51 @@ function CrewCard({crew,jobs}) {
 }
 
 // ─── Waiting List Panel ────────────────────────────────────────
-function WaitingListPanel({ items, filter, setFilter }) {
+function WaitingListPanel({ items, filter, setFilter, resources = [], onDispatch }) {
   const today = new Date();
+  const [expandedId, setExpandedId] = useState(null);
+  const [dispDate,   setDispDate]   = useState("");
+  const [dispRes,    setDispRes]    = useState("");
+  const [dispatching,setDispatching]= useState(false);
+  const [dispError,  setDispError]  = useState("");
+
   const filtered = filter
     ? items.filter(j => (j.service_code||"").toLowerCase().includes(filter.toLowerCase()) || (j.client_name||"").toLowerCase().includes(filter.toLowerCase()))
     : items;
+
+  // If resources arrive after the panel was opened, auto-select the first crew
+  // (avoids the race where handleExpand ran with resources=[] → dispRes stays "")
+  useEffect(() => {
+    if (expandedId && dispRes === "" && resources.length > 0) {
+      setDispRes(resources[0].id);
+    }
+  }, [resources]);
+
+  const handleExpand = (j) => {
+    setExpandedId(j.job_id);
+    setDispDate(today.toISOString().split("T")[0]);
+    setDispRes(resources[0]?.id || "");
+    setDispError("");
+  };
+
+  const handleConfirm = async (j) => {
+    if (!dispDate || !dispRes) { setDispError("Select date and crew"); return; }
+    setDispatching(true);
+    setDispError("");
+    try {
+      await onDispatch({ wlItemId: j.job_id, scheduleDate: dispDate, resourceId: dispRes });
+      setExpandedId(null);
+    } catch(e) {
+      setDispError(e.message || "Dispatch failed");
+    } finally {
+      setDispatching(false);
+    }
+  };
+
+  const inpS = {border:"1px solid #e2e8f0",borderRadius:4,padding:"3px 6px",fontSize:11,outline:"none",width:"100%",marginTop:3};
+
   return (
-    <div style={{width:240,flexShrink:0,borderRight:"1px solid #e2e8f0",overflowY:"auto",background:"#fff",display:"flex",flexDirection:"column"}}>
+    <div style={{width:260,flexShrink:0,borderRight:"1px solid #e2e8f0",overflowY:"auto",background:"#fff",display:"flex",flexDirection:"column"}}>
       <div style={{padding:"10px 12px",borderBottom:"1px solid #e2e8f0",position:"sticky",top:0,background:"#fff",zIndex:1}}>
         <div style={{fontWeight:700,fontSize:12,color:"#0f172a",marginBottom:6}}>Waiting List</div>
         <input placeholder="Filter…" value={filter} onChange={e=>setFilter(e.target.value)}
@@ -322,15 +360,38 @@ function WaitingListPanel({ items, filter, setFilter }) {
         {filtered.map(j=>{
           const daysW = j.date_added ? Math.floor((today-new Date(j.date_added))/86400000) : null;
           const urgent = daysW > 30;
+          const isOpen = expandedId === j.job_id;
           return (
-            <div key={j.id} style={{padding:"8px 12px",borderBottom:"1px solid #f8fafc"}}>
-              <div style={{fontWeight:600,fontSize:11.5,color:"#0f172a",lineHeight:1.3}}>{j.client_name}</div>
-              <div style={{fontSize:10.5,color:"#64748b"}}>{j.city}{j.zip?`, ${j.zip}`:""}</div>
-              <div style={{display:"flex",gap:3,marginTop:3,flexWrap:"wrap"}}>
-                <span style={{fontSize:10,background:"#eff6ff",color:"#1d4ed8",border:"1px solid #bfdbfe",borderRadius:3,padding:"1px 5px"}}>{j.service_code||"—"}</span>
-                {daysW!=null&&<span style={{fontSize:10,background:urgent?"#fef2f2":"#f8fafc",color:urgent?"#dc2626":"#64748b",border:`1px solid ${urgent?"#fecaca":"#e2e8f0"}`,borderRadius:3,padding:"1px 5px"}}>{daysW}d</span>}
+            <div key={j.id} style={{borderBottom:"1px solid #f1f5f9"}}>
+              <div style={{padding:"8px 12px",cursor:onDispatch?"pointer":undefined,background:isOpen?"#f8faff":"transparent"}}
+                onClick={()=>{ if(onDispatch && !isOpen) handleExpand(j); }}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                  <div style={{fontWeight:600,fontSize:11.5,color:"#0f172a",lineHeight:1.3,flex:1}}>{j.client_name}</div>
+                  {onDispatch&&!isOpen&&<span title="Dispatch to SA" style={{fontSize:12,color:"#3b82f6",cursor:"pointer",paddingLeft:6,flexShrink:0}}>→</span>}
+                  {isOpen&&<span title="Cancel" onClick={e=>{e.stopPropagation();setExpandedId(null);}} style={{fontSize:12,color:"#94a3b8",cursor:"pointer",paddingLeft:6,flexShrink:0}}>✕</span>}
+                </div>
+                <div style={{fontSize:10.5,color:"#64748b"}}>{j.city}{j.zip?`, ${j.zip}`:""}</div>
+                <div style={{display:"flex",gap:3,marginTop:3,flexWrap:"wrap"}}>
+                  <span style={{fontSize:10,background:"#eff6ff",color:"#1d4ed8",border:"1px solid #bfdbfe",borderRadius:3,padding:"1px 5px"}}>{j.service_code||"—"}</span>
+                  {daysW!=null&&<span style={{fontSize:10,background:urgent?"#fef2f2":"#f8fafc",color:urgent?"#dc2626":"#64748b",border:`1px solid ${urgent?"#fecaca":"#e2e8f0"}`,borderRadius:3,padding:"1px 5px"}}>{daysW}d</span>}
+                </div>
+                {(j.internal_notes||j.notes)&&<div style={{fontSize:10,color:"#94a3b8",marginTop:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{j.internal_notes||j.notes}</div>}
               </div>
-              {(j.internal_notes||j.notes)&&<div style={{fontSize:10,color:"#94a3b8",marginTop:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{j.internal_notes||j.notes}</div>}
+              {isOpen&&(
+                <div style={{padding:"8px 12px",background:"#f0f7ff",borderTop:"1px solid #dbeafe"}}>
+                  <div style={{fontSize:10.5,fontWeight:600,color:"#1d4ed8",marginBottom:4}}>Schedule to SA</div>
+                  <input type="date" value={dispDate} onChange={e=>setDispDate(e.target.value)} style={inpS}/>
+                  <select value={dispRes} onChange={e=>setDispRes(e.target.value)} style={{...inpS,marginTop:5}}>
+                    {resources.length===0&&<option value="">Loading crews…</option>}
+                    {resources.map(r=><option key={r.id} value={r.id}>{r.name}</option>)}
+                  </select>
+                  {dispError&&<div style={{fontSize:10,color:"#dc2626",marginTop:3}}>{dispError}</div>}
+                  <button disabled={dispatching} onClick={()=>handleConfirm(j)}
+                    style={{marginTop:6,width:"100%",background:dispatching?"#93c5fd":"#3b82f6",color:"#fff",border:"none",borderRadius:4,padding:"5px 0",fontSize:11,cursor:dispatching?"not-allowed":"pointer",fontWeight:600}}>
+                    {dispatching?"Dispatching…":"Dispatch to SA"}
+                  </button>
+                </div>
+              )}
             </div>
           );
         })}
@@ -525,6 +586,7 @@ export default function App() {
   const [chatInput,        setChatInput]        = useState("");
   const [chatLoading,      setChatLoading]      = useState(false);
   const [waitingList,      setWaitingList]      = useState([]);
+  const [saResources,      setSAResources]      = useState([]);
   const [wlFilter,         setWlFilter]         = useState("");
   const [dispatchDraft,    setDispatchDraft]    = useState(null);
   const [draftId,          setDraftId]          = useState(null);
@@ -688,6 +750,28 @@ export default function App() {
     return ALL_JOBS.filter(j=>j.ScheduleType==="Snow"&&j.StartDate===selectedEvt);
   },[selectedEvt, jobs, ALL_JOBS]);
 
+  // Load SA resources when dispatch view opens
+  useEffect(() => {
+    if (view !== "dispatch" || saResources.length > 0) return;
+    fetch(`${AGENT_URL}/sa-resources`, { headers: { 'X-Execute-Secret': CHAT_SECRET } })
+      .then(r => r.ok ? r.json() : [])
+      .then(list => { if (Array.isArray(list)) setSAResources(list); })
+      .catch(() => {});
+  }, [view]);
+
+  const handleDispatch = async ({ wlItemId, scheduleDate, resourceId }) => {
+    const resp = await fetch(`${AGENT_URL}/dispatch-job`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Execute-Secret': CHAT_SECRET },
+      body: JSON.stringify({ wlItemId, scheduleDate, resourceId }),
+    });
+    const json = await resp.json();
+    if (!resp.ok) throw new Error(json.error || `HTTP ${resp.status}`);
+    // Remove dispatched job from local waiting list state
+    setWaitingList(prev => prev.filter(j => j.job_id !== wlItemId));
+    return json;
+  };
+
   const handleApplyDates = () => fetchJobs(dateFrom, dateTo);
   const handleRefresh    = async () => {
     setSyncing(true);
@@ -748,7 +832,7 @@ export default function App() {
       {/* ── Dispatch view — full-height, no padding wrapper ── */}
       {isDispatch&&(
         <div style={{display:"flex",height:"calc(100vh - 50px)",overflow:"hidden"}}>
-          <WaitingListPanel items={waitingList} filter={wlFilter} setFilter={setWlFilter}/>
+          <WaitingListPanel items={waitingList} filter={wlFilter} setFilter={setWlFilter} resources={saResources} onDispatch={handleDispatch}/>
           <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
             <div style={{padding:"8px 14px",borderBottom:"1px solid #e2e8f0",display:"flex",alignItems:"center",gap:10,background:"#fff",flexShrink:0,flexWrap:"wrap"}}>
               <span style={{fontSize:11,fontWeight:600,color:"#64748b"}}>Week of</span>
