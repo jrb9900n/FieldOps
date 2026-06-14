@@ -366,6 +366,156 @@ function WorkOrderDrawer({ wo, supabase, onClose, onUpdated }) {
   );
 }
 
+// ─── New Estimate form drawer ─────────────────────────────────────
+const OPPORTUNITY_TYPES = [
+  ["commercial", "Commercial"],
+  ["residential", "Residential"],
+  ["hoa", "HOA"],
+  ["government", "Government"],
+  ["private", "Private"],
+  ["other", "Other"],
+];
+
+function NewEstimateDrawer({ supabase, onClose, onCreated }) {
+  const blank = { client_name: "", client_address: "", client_city: "", client_state: "WI", opportunity_type: "concrete", estimator_name: "", county: "", bid_price: "", gross_margin_target: "35", expected_duration_days: "", expected_timing: "", nearest_er: "", notes: "" };
+  const [form, setForm] = useState(blank);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError(null);
+    const bidPrice = parseFloat(form.bid_price) || 0;
+    const margin = parseFloat(form.gross_margin_target) / 100 || 0;
+    const grossProfit = Math.round(bidPrice * margin * 100) / 100;
+    const directCosts = Math.round((bidPrice - grossProfit) * 100) / 100;
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error: err } = await supabase.from("estimates").insert({
+        client_name: form.client_name.trim(),
+        client_address: form.client_address.trim(),
+        client_city: form.client_city.trim() || null,
+        client_state: form.client_state.trim() || null,
+        opportunity_type: form.opportunity_type,
+        estimator_id: user?.id ?? null,
+        estimator_name: form.estimator_name.trim(),
+        county: form.county.trim() || null,
+        bid_price: bidPrice,
+        gross_profit: grossProfit,
+        direct_costs: directCosts,
+        gross_margin_target: margin,
+        expected_duration_days: form.expected_duration_days ? parseInt(form.expected_duration_days, 10) : null,
+        expected_timing: form.expected_timing.trim() || null,
+        nearest_er: form.nearest_er.trim() || null,
+        notes: form.notes.trim() || null,
+        status: "draft",
+      });
+      if (err) { setError(err.message); return; }
+      onCreated();
+    } catch (ex) {
+      setError(ex?.message ?? "Unexpected error — please try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const inp = { background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "8px 12px", fontSize: 13, outline: "none", width: "100%", boxSizing: "border-box" };
+  const lbl = { fontSize: 11, fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 4 };
+  const field = (label, children) => (
+    <div style={{ marginBottom: 14 }}>
+      <label style={lbl}>{label}</label>
+      {children}
+    </div>
+  );
+
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 1000, display: "flex", justifyContent: "flex-end" }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", width: "100%", maxWidth: 520, height: "100%", overflowY: "auto", boxShadow: "-8px 0 32px rgba(0,0,0,0.15)", display: "flex", flexDirection: "column" }}>
+        {/* Header */}
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid #e2e8f0", position: "sticky", top: 0, background: "#fff", zIndex: 1, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 16, color: "#0f172a" }}>New Estimate</div>
+            <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 1 }}>Creates a draft estimate</div>
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "#94a3b8", padding: "0 4px" }}>✕</button>
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ padding: "20px", flex: 1 }}>
+          {/* Client */}
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 12 }}>Client</div>
+          {field("Client Name *", <input required value={form.client_name} onChange={e => set("client_name", e.target.value)} placeholder="Acme Corp" style={inp} />)}
+          {field("Address *", <input required value={form.client_address} onChange={e => set("client_address", e.target.value)} placeholder="123 Main St" style={inp} />)}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 80px", gap: 10 }}>
+            {field("City", <input value={form.client_city} onChange={e => set("client_city", e.target.value)} placeholder="Milwaukee" style={inp} />)}
+            {field("State", <input value={form.client_state} onChange={e => set("client_state", e.target.value)} maxLength={2} placeholder="WI" style={inp} />)}
+          </div>
+
+          {/* Job */}
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.07em", margin: "4px 0 12px" }}>Job</div>
+          {field("Opportunity Type *",
+            <select required value={form.opportunity_type} onChange={e => set("opportunity_type", e.target.value)} style={{ ...inp, cursor: "pointer" }}>
+              {OPPORTUNITY_TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+          )}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            {field("Estimator *", <input required value={form.estimator_name} onChange={e => set("estimator_name", e.target.value)} placeholder="Michael" style={inp} />)}
+            {field("County", <input value={form.county} onChange={e => set("county", e.target.value)} placeholder="Ozaukee" style={inp} />)}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            {field("Est. Duration (days)", <input type="number" min="0" value={form.expected_duration_days} onChange={e => set("expected_duration_days", e.target.value)} placeholder="1" style={inp} />)}
+            {field("Expected Timing", <input value={form.expected_timing} onChange={e => set("expected_timing", e.target.value)} placeholder="Spring 2026" style={inp} />)}
+          </div>
+          {field("Nearest ER", <input value={form.nearest_er} onChange={e => set("nearest_er", e.target.value)} placeholder="Froedtert Menomonee Falls" style={inp} />)}
+
+          {/* Financials */}
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.07em", margin: "4px 0 12px" }}>Financials</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            {field("Bid Price ($)",
+              <input type="number" min="0" step="0.01" value={form.bid_price} onChange={e => set("bid_price", e.target.value)} placeholder="5000" style={inp} />
+            )}
+            {field("Gross Margin Target (%)",
+              <input type="number" min="0" max="100" step="0.1" value={form.gross_margin_target} onChange={e => set("gross_margin_target", e.target.value)} placeholder="35" style={inp} />
+            )}
+          </div>
+          {form.bid_price !== "" && form.gross_margin_target !== "" && (
+            <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "10px 14px", marginBottom: 14, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+              {(() => {
+                const bp = parseFloat(form.bid_price) || 0;
+                const m = parseFloat(form.gross_margin_target) / 100 || 0;
+                const gp = bp * m;
+                const dc = bp - gp;
+                return [["Direct Costs", dc, "#0f172a"], ["Gross Profit", gp, "#15803d"], ["Margin", `${(m * 100).toFixed(0)}%`, "#2563eb"]].map(([l, v, c]) => (
+                  <div key={l}>
+                    <div style={{ fontSize: 10, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>{l}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: c, marginTop: 2 }}>{typeof v === "number" ? f$(v) : v}</div>
+                  </div>
+                ));
+              })()}
+            </div>
+          )}
+
+          {/* Notes */}
+          {field("Notes", <textarea value={form.notes} onChange={e => set("notes", e.target.value)} rows={3} placeholder="Site conditions, access instructions, special requirements…" style={{ ...inp, resize: "vertical", lineHeight: 1.5 }} />)}
+
+          {error && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "9px 12px", fontSize: 12, color: "#b91c1c", marginBottom: 14 }}>{error}</div>}
+
+          <div style={{ display: "flex", gap: 10, position: "sticky", bottom: 0, background: "#fff", paddingTop: 12, borderTop: "1px solid #e2e8f0", marginTop: 8 }}>
+            <button type="submit" disabled={saving} style={{ flex: 1, background: saving ? "#94a3b8" : "#ea580c", color: "#fff", border: "none", borderRadius: 8, padding: "11px", fontSize: 13, fontWeight: 700, cursor: saving ? "not-allowed" : "pointer" }}>
+              {saving ? "Creating…" : "Create Estimate"}
+            </button>
+            <button type="button" onClick={onClose} style={{ background: "#f1f5f9", color: "#374151", border: "none", borderRadius: 8, padding: "11px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ─── Estimates list view ──────────────────────────────────────────
 export function EstimatesView({ supabase }) {
   const [estimates, setEstimates] = useState([]);
@@ -375,6 +525,7 @@ export function EstimatesView({ supabase }) {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selected, setSelected] = useState(null);
   const [woRefresh, setWoRefresh] = useState(0);
+  const [showNew, setShowNew] = useState(false);
 
   function load() {
     setLoading(true);
@@ -413,6 +564,9 @@ export function EstimatesView({ supabase }) {
 
   return (
     <div>
+      {showNew && (
+        <NewEstimateDrawer supabase={supabase} onClose={() => setShowNew(false)} onCreated={() => { setShowNew(false); load(); }} />
+      )}
       {selected && (
         <EstimateDrawer
           estimate={selected} supabase={supabase}
@@ -432,6 +586,9 @@ export function EstimatesView({ supabase }) {
           <option value="declined">Declined ({counts.declined})</option>
         </select>
         <span style={{ fontSize: 11, color: "#94a3b8", marginLeft: "auto" }}>{filtered.length} of {estimates.length} estimates</span>
+        <button onClick={() => setShowNew(true)} style={{ background: "#ea580c", color: "#fff", border: "none", borderRadius: 7, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
+          + New Estimate
+        </button>
       </div>
 
       <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, overflow: "hidden" }}>
