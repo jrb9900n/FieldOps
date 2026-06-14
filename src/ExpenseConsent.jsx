@@ -39,6 +39,13 @@ export default function ExpenseConsent() {
         message and no further messages will be sent. Reply <strong>HELP</strong> for assistance.
       </p>
 
+      <h2 style={{ fontSize: 16, marginTop: 24 }}>Privacy Policy</h2>
+      <p>
+        For information on how J.R. Boehlke LLC collects, uses, and protects your personal
+        information, see our full{' '}
+        <a href="/privacy-policy" style={{ color: '#0066cc' }}>Privacy Policy</a>.
+      </p>
+
       <h2 style={{ fontSize: 16, marginTop: 24 }}>Contact</h2>
       <p>
         J.R. Boehlke LLC<br />
