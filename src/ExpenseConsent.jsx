@@ -1,43 +1,41 @@
 export default function ExpenseConsent() {
   return (
     <div style={{ maxWidth: 640, margin: '40px auto', padding: '0 24px', fontFamily: 'sans-serif', color: '#111' }}>
-      <h1 style={{ fontSize: 22, marginBottom: 8 }}>J.R. Boehlke LLC — Company Card SMS Notifications</h1>
+      <h1 style={{ fontSize: 22, marginBottom: 8 }}>J.R. Boehlke LLC — Company Card SMS Program</h1>
       <p style={{ color: '#555', marginBottom: 24 }}>Effective June 2026</p>
 
       <h2 style={{ fontSize: 16, marginTop: 24 }}>Program Description</h2>
       <p>
-        Employees of J.R. Boehlke LLC who are issued a company credit card will receive automated
-        SMS text messages from <strong>+1 (262) 240-6607</strong> for the following purposes:
+        J.R. Boehlke LLC operates an automated SMS notification program for employees who are
+        issued company credit cards. Messages are sent from <strong>+1 (262) 240-6607</strong> for:
       </p>
       <ul>
         <li>Transaction alerts when a charge posts to their card</li>
         <li>Receipt submission reminders for incomplete expense reports</li>
         <li>Confirmation when a receipt has been received</li>
       </ul>
-      <p>Message frequency varies based on card usage. Standard message and data rates may apply.</p>
+
+      <h2 style={{ fontSize: 16, marginTop: 24 }}>Terms and Conditions</h2>
+      <p>By enrolling in the J.R. Boehlke LLC company card SMS program, you agree to the following:</p>
+      <ul>
+        <li><strong>Who is eligible:</strong> Employees of J.R. Boehlke LLC who have been issued a company credit card.</li>
+        <li><strong>How to enroll:</strong> Enrollment occurs when you provide your mobile phone number to J.R. Boehlke LLC during employment onboarding and accept a company card.</li>
+        <li><strong>Message frequency:</strong> Varies based on card usage. Typically 1–5 messages per transaction (alert, reminders, confirmation).</li>
+        <li><strong>Message and data rates:</strong> Standard message and data rates from your mobile carrier may apply.</li>
+        <li><strong>How to opt out:</strong> Reply <strong>STOP</strong> to any message at any time. You will receive one final confirmation and no further messages will be sent. Reply <strong>START</strong> to re-enroll.</li>
+        <li><strong>How to get help:</strong> Reply <strong>HELP</strong> to any message, or contact us at (262) 242-9924 or michael@jrboehlke.com.</li>
+        <li><strong>Data sharing:</strong> Your mobile number will not be shared with or sold to third parties for marketing purposes.</li>
+        <li><strong>Supported carriers:</strong> All major US carriers. Carrier is not liable for delayed or undelivered messages.</li>
+      </ul>
 
       <h2 style={{ fontSize: 16, marginTop: 24 }}>How Consent Is Obtained</h2>
       <p>
-        Consent to receive SMS notifications is obtained at the time a company card is issued.
-        Each employee signs a <strong>Company Card Agreement</strong> that includes the following
-        acknowledgment:
+        Consent to receive SMS messages is obtained during employment onboarding. Employees
+        provide their mobile phone number and are informed of this SMS program before their
+        company card is activated. Enrollment is voluntary and employees may opt out at any
+        time by replying STOP to any message.
       </p>
-      <blockquote style={{ borderLeft: '3px solid #ccc', paddingLeft: 16, color: '#444', margin: '12px 0' }}>
-        "By accepting this company credit card, I consent to receive automated SMS text messages
-        at the mobile number I have provided to J.R. Boehlke LLC. These messages will notify me
-        of card transactions and remind me to submit receipts for expense reporting. I understand
-        that message and data rates may apply and that I may opt out at any time by replying STOP."
-      </blockquote>
-      <p>
-        Employees provide their mobile number as part of their employment onboarding paperwork.
-        No third-party sharing of mobile numbers occurs.
-      </p>
-
-      <h2 style={{ fontSize: 16, marginTop: 24 }}>How to Opt Out</h2>
-      <p>
-        Reply <strong>STOP</strong> to any message to unsubscribe. You will receive one confirmation
-        message and no further messages will be sent. Reply <strong>HELP</strong> for assistance.
-      </p>
+      <p>No third-party sharing of mobile numbers occurs.</p>
 
       <h2 style={{ fontSize: 16, marginTop: 24 }}>Privacy Policy</h2>
       <p>
