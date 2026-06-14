@@ -3,6 +3,7 @@
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "framework": "vite",
+  "cleanUrls": false,
   "rewrites": [
     { "source": "/expense-consent", "destination": "/index.html" },
     { "source": "/privacy-policy",  "destination": "/index.html" },
