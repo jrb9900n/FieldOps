@@ -13,19 +13,21 @@ const f$ = n =>
   n == null ? "—" : "$" + Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default function MaintenanceLogPortal() {
-  const logId = new URLSearchParams(window.location.search).get("log");
+  const params = new URLSearchParams(window.location.search);
+  const logId  = params.get("log");
+  const token  = params.get("token");
 
-  const [loading, setLoading]     = useState(true);
-  const [logData, setLogData]     = useState(null);
-  const [notFound, setNotFound]   = useState(false);
+  const [loading, setLoading]         = useState(true);
+  const [logData, setLogData]         = useState(null);
+  const [notFound, setNotFound]       = useState(false);
   const [alreadyDone, setAlreadyDone] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [done, setDone]           = useState(false);
-  const [error, setError]         = useState(null);
+  const [submitting, setSubmitting]   = useState(false);
+  const [done, setDone]               = useState(false);
+  const [error, setError]             = useState(null);
 
   useEffect(() => {
-    if (!logId) { setNotFound(true); setLoading(false); return; }
-    fetch(`${AGENT_URL}/maintenance-log-data?log=${logId}`)
+    if (!logId || !token) { setNotFound(true); setLoading(false); return; }
+    fetch(`${AGENT_URL}/maintenance-log-data?log=${logId}&token=${token}`)
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(data => {
         if (data.report?.status === "complete") setAlreadyDone(true);
@@ -36,16 +38,20 @@ export default function MaintenanceLogPortal() {
         else setError("Could not load maintenance log. Please try again.");
       })
       .finally(() => setLoading(false));
-  }, [logId]);
+  }, [logId, token]);
 
   async function handleComplete() {
+    if (!logId || !token) {
+      setError("Missing authentication credentials. Please use the original link.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
       const res = await fetch(`${AGENT_URL}/maintenance-log-complete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ log_id: logId }),
+        body: JSON.stringify({ log_id: logId, token }),
       });
       const result = await res.json();
       if (!res.ok || result.error) throw new Error(result.error || "Failed to complete");
