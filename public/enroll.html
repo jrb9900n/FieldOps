@@ -34,8 +34,8 @@
 
   <form id="enroll-form" action="https://agent.jrboehlke.com/enroll" method="POST">
     <div class="field">
-      <label class="field-label" for="name">Your Name</label>
-      <input type="text" id="name" name="name" placeholder="First Last" autocomplete="name">
+      <label class="field-label" for="name">Your Name <span class="required">*</span></label>
+      <input type="text" id="name" name="name" placeholder="First Last" required autocomplete="name">
     </div>
 
     <div class="field" style="margin-bottom: 20px;">
@@ -57,10 +57,52 @@
       </div>
     </div>
 
-    <button type="submit">Enroll &mdash; Receive SMS Alerts</button>
+    <button type="submit" id="submit-btn">Enroll &mdash; Receive SMS Alerts</button>
     <p class="note">After enrolling, reply <strong>YES</strong> to the confirmation text to activate alerts.</p>
     <p class="note">Message frequency varies. Msg &amp; data rates may apply. Reply STOP to cancel at any time.</p>
+    <p id="form-error" style="display:none;color:#dc2626;text-align:center;font-size:14px;margin-top:12px;"></p>
   </form>
+
+  <div id="success-msg" style="display:none;text-align:center;padding:32px 0;">
+    <p style="font-size:20px;font-weight:600;margin-bottom:8px;">Check your phone!</p>
+    <p style="color:#555;">We sent a confirmation text to your number.<br>Reply <strong>YES</strong> to activate your card alerts.</p>
+  </div>
+
+  <script>
+    document.getElementById('enroll-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const phone = document.getElementById('phone').value.trim();
+      const name = document.getElementById('name').value.trim();
+      const consent = document.getElementById('consent').checked;
+      const errEl = document.getElementById('form-error');
+      errEl.style.display = 'none';
+      if (!name) { errEl.textContent = 'Please enter your name.'; errEl.style.display = 'block'; return; }
+      if (!phone) { errEl.textContent = 'Please enter your mobile phone number.'; errEl.style.display = 'block'; return; }
+      if (!consent) { errEl.textContent = 'Please check the consent box to continue.'; errEl.style.display = 'block'; return; }
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true; btn.textContent = 'Sending...';
+      try {
+        const res = await fetch('https://agent.jrboehlke.com/enroll', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, name, consent })
+        });
+        if (res.ok) {
+          document.getElementById('enroll-form').style.display = 'none';
+          document.getElementById('success-msg').style.display = 'block';
+        } else {
+          const data = await res.json().catch(() => ({}));
+          errEl.textContent = data.error || 'Something went wrong. Please try again.';
+          errEl.style.display = 'block';
+          btn.disabled = false; btn.textContent = 'Enroll — Receive SMS Alerts';
+        }
+      } catch {
+        errEl.textContent = 'Network error. Please check your connection and try again.';
+        errEl.style.display = 'block';
+        btn.disabled = false; btn.textContent = 'Enroll — Receive SMS Alerts';
+      }
+    });
+  </script>
 
   <div class="footer">
     J.R. Boehlke LLC &mdash; 9900 N Granville Rd, Mequon, WI 53097<br>
