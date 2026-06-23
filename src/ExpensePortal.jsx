@@ -39,6 +39,8 @@ const ASSET_CATEGORIES = new Set([
   "Purchase of fuel",
 ]);
 
+const PERSONAL_VEHICLE_VALUE = "__personal__";
+
 const f$ = n =>
   n == null ? "—" : "$" + Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fDate = iso => {
@@ -70,8 +72,11 @@ export default function ExpensePortal({ token }) {
 
   const fileInputRef = useRef(null);
 
-  const showJobSection   = JOB_CATEGORIES.has(category);
-  const showAssetSection = ASSET_CATEGORIES.has(category);
+  const showJobSection    = JOB_CATEGORIES.has(category);
+  const showAssetSection  = ASSET_CATEGORIES.has(category);
+  const isFuel            = category === "Purchase of fuel";
+  const assetRequired     = showAssetSection && !isFuel;
+  const isPersonalVehicle = isFuel && assetId === PERSONAL_VEHICLE_VALUE;
 
   useEffect(() => {
     fetch(`${AGENT_URL}/expense-data?token=${token}`)
@@ -99,7 +104,7 @@ export default function ExpensePortal({ token }) {
   async function handleSubmit(e) {
     e.preventDefault();
     if (!category) { setError("Please select what this cost is related to."); return; }
-    if (showAssetSection && !assetId) { setError("Please select the asset this expense is for."); return; }
+    if (assetRequired && !assetId) { setError("Please select the asset this expense is for."); return; }
     if (!description.trim()) { setError("Please describe the item or service purchased."); return; }
     if (!receiptFile && !report.receipt_path) { setError("Please upload a photo of the receipt."); return; }
 
@@ -129,7 +134,7 @@ export default function ExpensePortal({ token }) {
           token,
           category: category === "Other" ? "Other" : category,
           job_number: showJobSection ? jobNumber.trim() || null : null,
-          asset_id: showAssetSection ? assetId || null : null,
+          asset_id: showAssetSection && assetId && !isPersonalVehicle ? assetId : null,
           item_description: description.trim(),
           receipt_path: path,
           receipt_url: null,
@@ -284,18 +289,21 @@ export default function ExpensePortal({ token }) {
           </div>
         )}
 
-        {/* Section 3 — Asset info (conditional) */}
+        {/* Section 3 — Asset info (conditional; optional for fuel) */}
         {showAssetSection && (
           <div style={card}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14 }}>Section 3 of 4 — Asset Info</div>
-            <label style={label}>Vehicle, trailer, or equipment *</label>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14 }}>
+              Section 3 of 4 — Asset Info{isFuel ? <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}> — optional</span> : ""}
+            </div>
+            <label style={label}>Vehicle, trailer, or equipment {assetRequired ? "*" : ""}</label>
             <select
               value={assetId}
               onChange={e => setAssetId(e.target.value)}
-              required={showAssetSection}
+              required={assetRequired}
               style={select_s}
             >
-              <option value="">— Select asset —</option>
+              <option value="">— {isFuel ? "Select asset or leave blank" : "Select asset"} —</option>
+              {isFuel && <option value={PERSONAL_VEHICLE_VALUE}>Personal vehicle (not in FleetOps)</option>}
               {assets.map(a => (
                 <option key={a.id} value={a.id}>
                   {a.id} — {a.name}{a.year ? ` (${a.year})` : ""}{a.make && a.model ? ` ${a.make} ${a.model}` : ""}
@@ -303,7 +311,13 @@ export default function ExpensePortal({ token }) {
               ))}
             </select>
             <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 6 }}>
-              A maintenance log will be created in FleetOps for this asset.
+              {isPersonalVehicle
+                ? "No maintenance log will be created for personal vehicle purchases."
+                : assetId
+                  ? "A maintenance log will be created in FleetOps for this asset."
+                  : isFuel
+                    ? "Leave blank if this fuel purchase is not specific to a fleet asset."
+                    : "A maintenance log will be created in FleetOps for this asset."}
             </div>
           </div>
         )}
@@ -312,7 +326,7 @@ export default function ExpensePortal({ token }) {
         {category && (
           <div style={card}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14 }}>
-              Section {showJobSection || showAssetSection ? "4" : "2"} of {showJobSection || showAssetSection ? "4" : "2"} — Final Information
+              {(() => { const n = showJobSection || showAssetSection ? 3 : 2; return `Section ${n} of ${n} — Final Information`; })()}
             </div>
 
             <div style={{ marginBottom: 18 }}>
