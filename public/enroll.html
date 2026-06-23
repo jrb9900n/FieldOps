@@ -34,8 +34,8 @@
 
   <form id="enroll-form" action="https://agent.jrboehlke.com/enroll" method="POST">
     <div class="field">
-      <label class="field-label" for="name">Your Name</label>
-      <input type="text" id="name" name="name" placeholder="First Last" autocomplete="name">
+      <label class="field-label" for="name">Your Name <span class="required">*</span></label>
+      <input type="text" id="name" name="name" placeholder="First Last" required autocomplete="name">
     </div>
 
     <div class="field" style="margin-bottom: 20px;">
@@ -76,6 +76,8 @@
       const consent = document.getElementById('consent').checked;
       const errEl = document.getElementById('form-error');
       errEl.style.display = 'none';
+      if (!name) { errEl.textContent = 'Please enter your name.'; errEl.style.display = 'block'; return; }
+      if (!phone) { errEl.textContent = 'Please enter your mobile phone number.'; errEl.style.display = 'block'; return; }
       if (!consent) { errEl.textContent = 'Please check the consent box to continue.'; errEl.style.display = 'block'; return; }
       const btn = document.getElementById('submit-btn');
       btn.disabled = true; btn.textContent = 'Sending...';
@@ -83,7 +85,7 @@
         const res = await fetch('https://agent.jrboehlke.com/enroll', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone, name })
+          body: JSON.stringify({ phone, name, consent })
         });
         if (res.ok) {
           document.getElementById('enroll-form').style.display = 'none';
