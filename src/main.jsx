@@ -5,6 +5,7 @@ import ExpensePortal from './ExpensePortal.jsx'
 import ExpenseConsent from './ExpenseConsent.jsx'
 import PrivacyPolicy from './PrivacyPolicy.jsx'
 import EnrollmentForm from './EnrollmentForm.jsx'
+import MaintenanceLogPortal from './MaintenanceLogPortal.jsx'
 import './index.css'
 
 const path = window.location.pathname
@@ -12,6 +13,7 @@ const expenseMatch = path.match(/^\/expense\/([0-9a-f-]{36})$/i)
 const isConsent  = path === '/expense-consent'
 const isPrivacy  = path === '/privacy-policy'
 const isEnroll   = path === '/enroll'
+const isLog      = path === '/log'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -23,7 +25,9 @@ createRoot(document.getElementById('root')).render(
           ? <PrivacyPolicy />
           : isEnroll
             ? <EnrollmentForm />
-            : <App />
+            : isLog
+              ? <MaintenanceLogPortal />
+              : <App />
     }
   </StrictMode>,
 )
